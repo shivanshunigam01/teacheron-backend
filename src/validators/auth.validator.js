@@ -29,8 +29,22 @@ export const resetSchema = z.object({
   }),
 });
 
+const teachingSubjectSchema = z.object({
+  name: z.string().min(1).max(100),
+  fromLevel: z.string().min(1).max(100),
+  toLevel: z.string().min(1).max(100),
+});
+
 const teacherProfileSchema = z.object({
+  teacherType: z.enum(['individual', 'company']).optional(),
+  speciality: z.string().min(1).max(200).optional(),
+  birthDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Birth date must be YYYY-MM-DD')
+    .optional()
+    .or(z.literal('')),
   subjects: z.array(z.string().min(1)).min(1).optional(),
+  teachingSubjects: z.array(teachingSubjectSchema).min(1).optional(),
   bio: z.string().min(10).max(2000).optional(),
   experience: z.number().min(0).max(60).optional(),
   hourlyRate: z.number().min(0).max(10000).optional(),
@@ -48,7 +62,8 @@ const studentProfileSchema = z.object({
 export const updateProfileSchema = z.object({
   body: z.object({
     name: z.string().min(2).max(100).optional(),
-    phone: z.string().max(30).optional(),
+    phone: z.string().min(6).max(20).optional(),
+    phoneCountryCode: z.string().regex(/^\+\d{1,4}$/).optional(),
     avatarUrl: z.string().url().optional().or(z.literal('')),
     theme: z.enum(['light', 'dark']).optional(),
     locale: z.string().max(10).optional(),

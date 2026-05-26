@@ -6,7 +6,12 @@ export function computeProfileComplete(user) {
   if (user.role === 'teacher') {
     const p = user.teacherProfile || {};
     return Boolean(
-      p.subjects?.length &&
+      user.phone?.trim() &&
+        p.teacherType &&
+        p.speciality?.trim() &&
+        p.gender &&
+        p.birthDate &&
+        (p.teachingSubjects?.length || p.subjects?.length) &&
         p.bio?.trim() &&
         p.hourlyRate != null &&
         p.location?.trim(),

@@ -101,20 +101,25 @@ export const updateProfile = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user.id);
   if (!user) throw ApiError.notFound('User not found');
 
-  const { name, phone, avatarUrl, theme, locale, teacherProfile, studentProfile } = req.body;
+  const { name, phone, phoneCountryCode, avatarUrl, theme, locale, teacherProfile, studentProfile } = req.body;
 
   if (name) user.name = name;
   if (phone !== undefined) user.phone = phone;
+  if (phoneCountryCode !== undefined) user.phoneCountryCode = phoneCountryCode;
   if (avatarUrl !== undefined) user.avatarUrl = avatarUrl || undefined;
   if (theme) user.theme = theme;
   if (locale) user.locale = locale;
 
   if (user.role === 'teacher' && teacherProfile) {
-    user.teacherProfile = {
+    const merged = {
       ...(user.teacherProfile?.toObject?.() || user.teacherProfile || {}),
       ...teacherProfile,
       initials: user.teacherProfile?.initials || initialsFromName(user.name),
     };
+    if (teacherProfile.teachingSubjects?.length) {
+      merged.subjects = teacherProfile.teachingSubjects.map((entry) => entry.name);
+    }
+    user.teacherProfile = merged;
   }
 
   if (user.role === 'student' && studentProfile) {

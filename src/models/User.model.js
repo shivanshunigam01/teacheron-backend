@@ -4,6 +4,15 @@ const { Schema } = mongoose;
 
 const childSchema = new Schema({ name: String, age: Number, grade: String }, { _id: false });
 
+const teachingSubjectSchema = new Schema(
+  {
+    name: { type: String, required: true, trim: true },
+    fromLevel: { type: String, trim: true },
+    toLevel: { type: String, trim: true },
+  },
+  { _id: false },
+);
+
 const userSchema = new Schema(
   {
     name: { type: String, required: true, trim: true },
@@ -12,13 +21,18 @@ const userSchema = new Schema(
     role: { type: String, enum: ['student', 'teacher', 'parent', 'admin'], required: true },
     avatarUrl: String,
     phone: String,
+    phoneCountryCode: { type: String, default: '+91' },
     locale: { type: String, default: 'en' },
     theme: { type: String, enum: ['light', 'dark'], default: 'light' },
     isVerified: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
     profileComplete: { type: Boolean, default: false },
     teacherProfile: {
+      teacherType: { type: String, enum: ['individual', 'company'] },
+      speciality: String,
+      birthDate: Date,
       subjects: [String],
+      teachingSubjects: [teachingSubjectSchema],
       bio: String,
       experience: Number,
       hourlyRate: Number,
