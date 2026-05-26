@@ -34,7 +34,18 @@ app.use(apiRateLimit);
 app.use('/uploads', express.static(env.uploadDir));
 
 app.get('/health', (req, res) =>
-  res.json({ status: 'ok', uptime: process.uptime(), db: dbState() }),
+  res.json({
+    status: 'ok',
+    uptime: process.uptime(),
+    db: dbState(),
+    apiPrefix: env.API_PREFIX,
+    authRoutes: [
+      'POST /auth/register',
+      'POST /auth/login',
+      'GET /auth/me',
+      'PATCH /auth/profile',
+    ],
+  }),
 );
 
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
