@@ -1,0 +1,2 @@
+import {sendMail} from '../services/email.service.js';import {ApiResponse} from '../utils/ApiResponse.js';import {asyncHandler} from '../utils/asyncHandler.js';
+export const contact=asyncHandler(async(req,res)=>{await sendMail({to:process.env.MAIL_FROM_EMAIL||'support@teacherpoint.com',subject:req.body.subject||'Contact form',html:`<p>${req.body.name} ${req.body.email}</p><p>${req.body.message}</p>`});ApiResponse.created(res,{submitted:true},'Contact submitted');});

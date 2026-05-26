@@ -1,0 +1,1 @@
+export class ApiResponse{static ok(res,data={},message='OK',status=200){return res.status(status).json({success:true,message,data})} static created(res,data={},message='Created'){return this.ok(res,data,message,201)}}

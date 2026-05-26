@@ -1,0 +1,5 @@
+import env from '../config/env.js';import {ApiResponse} from '../utils/ApiResponse.js';import {asyncHandler} from '../utils/asyncHandler.js';
+async function geoFetch(url){if(!env.geoapifyApiKey)return null;const r=await fetch(url);return r.json();}
+const normalize=(raw)=>{const p=raw?.features?.[0]?.properties||raw||{};return {country:p.country,countryCode:p.country_code?.toUpperCase?.(),city:p.city||p.county,state:p.state,formatted:p.formatted};};
+export const ip=asyncHandler(async(req,res)=>{const raw=await geoFetch(`https://api.geoapify.com/v1/ipinfo?apiKey=${env.geoapifyApiKey}`);res.set('Cache-Control','private, max-age=300');res.set('X-Location-Source','geoapify-ip');ApiResponse.ok(res,{location:normalize(raw),geoapify:raw},'Location fetched');});
+export const reverse=asyncHandler(async(req,res)=>{const {lat,lon}=req.query;const raw=await geoFetch(`https://api.geoapify.com/v1/geocode/reverse?lat=${lat}&lon=${lon}&apiKey=${env.geoapifyApiKey}`);ApiResponse.ok(res,{location:normalize(raw),geoapify:raw},'Location fetched');});

@@ -1,0 +1,1 @@
+import {Router} from 'express';import {verifyJWT} from '../middleware/auth.middleware.js';import {upload} from '../middleware/upload.middleware.js';import {uploadFile} from '../controllers/upload.controller.js';const r=Router();r.post('/',verifyJWT,upload.single('file'),uploadFile);export default r;

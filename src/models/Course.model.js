@@ -1,0 +1,5 @@
+import mongoose from 'mongoose';
+const {Schema}=mongoose;
+const courseSchema=new Schema({title:{type:String,required:true},slug:{type:String,unique:true},instructorId:{type:Schema.Types.ObjectId,ref:'User'},instructorName:String,categoryId:{type:Schema.Types.ObjectId,ref:'Category'},category:String,level:{type:String,enum:['Beginner','Intermediate','Advanced']},rating:{type:Number,default:0},reviewCount:{type:Number,default:0},price:Number,oldPrice:Number,duration:String,lessons:Number,students:{type:Number,default:0},bestseller:Boolean,certificate:Boolean,language:String,gradient:String,imageUrl:String,description:String,status:{type:String,enum:['draft','pending','published','rejected'],default:'pending'},curriculum:[{moduleId:String,title:String,order:Number,lessons:[{lessonId:String,title:String,type:{type:String,enum:['video','article','quiz']},durationMinutes:Number,order:Number}]}],createdBy:{type:Schema.Types.ObjectId,ref:'User'}},{timestamps:true});
+courseSchema.index({title:'text',instructorName:'text',category:'text'});
+export default mongoose.model('Course',courseSchema);

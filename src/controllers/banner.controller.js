@@ -1,0 +1,3 @@
+export * from './banner.base.controller.js';
+import Banner from '../models/Banner.model.js';import {ApiResponse} from '../utils/ApiResponse.js';import {asyncHandler} from '../utils/asyncHandler.js';import {toJSON} from '../utils/serialize.js';
+export const active=asyncHandler(async(req,res)=>{const now=new Date();const vals=[req.query.city,req.query.country,'global'].filter(Boolean);const item=await Banner.findOne({active:true,$or:[{targetValue:{$in:vals}},{targetType:'global'}],$and:[{$or:[{startAt:{$exists:false}},{startAt:{$lte:now}}]},{$or:[{endAt:{$exists:false}},{endAt:{$gte:now}}]}]}).sort('-priority');ApiResponse.ok(res,toJSON(item),'Active banner fetched');});

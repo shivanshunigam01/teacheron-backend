@@ -1,0 +1,1 @@
+export function getPagination(q){const page=Math.max(1,parseInt(q.page,10)||1);const limit=Math.min(100,Math.max(1,parseInt(q.limit,10)||20));return {page,limit,skip:(page-1)*limit,sort:q.sort||'-createdAt'}} export function paginationMeta(total,page,limit){return{page,limit,total,totalPages:Math.ceil(total/limit)||1}}

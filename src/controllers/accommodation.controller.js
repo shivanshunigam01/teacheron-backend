@@ -1,0 +1,3 @@
+export * from './accommodation.base.controller.js';
+import Accommodation from '../models/Accommodation.model.js';import AccommodationInquiry from '../models/AccommodationInquiry.model.js';import {ApiError} from '../utils/ApiError.js';import {ApiResponse} from '../utils/ApiResponse.js';import {asyncHandler} from '../utils/asyncHandler.js';import {toJSON} from '../utils/serialize.js';
+export const inquiry=asyncHandler(async(req,res)=>{const a=await Accommodation.findById(req.params.id);if(!a)throw ApiError.notFound('Accommodation not found');const item=await AccommodationInquiry.create({...req.body,accommodationId:a.id,accommodationName:a.name,userId:req.user?.id});ApiResponse.created(res,toJSON(item),'Inquiry submitted');});
