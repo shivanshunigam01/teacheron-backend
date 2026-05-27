@@ -14,6 +14,7 @@ import { notFound, errorHandler } from './middleware/error.middleware.js';
 import { dbState } from './config/db.js';
 
 const app = express();
+const API_PREFIX = '/api/v1';
 
 app.set('trust proxy', 1);
 
@@ -35,34 +36,27 @@ app.use('/uploads', express.static(env.uploadDir));
 
 app.get('/health', (req, res) =>
   res.json({
+    success: true,
     status: 'ok',
     uptime: process.uptime(),
     db: dbState(),
-    apiPrefix: env.API_PREFIX,
+    apiPrefix: API_PREFIX,
     authRoutes: [
-      'POST /auth/register',
-      'POST /auth/login',
-      'GET /auth/me',
-      'PATCH /auth/profile',
+      'POST /api/v1/auth/register',
+      'POST /api/v1/auth/login',
+      'GET /api/v1/auth/me',
+      'PATCH /api/v1/auth/profile',
     ],
   }),
 );
 
-// Production/debug convenience endpoint (ensures the frontend can verify base mounting).
-// Always available at /api/v1/health regardless of env.API_PREFIX configuration.
-app.get('/api/v1/health', (req, res) => res.json({ success: true, message: 'TeacherPoint API is running' }));
-
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// Mount API routes under env.API_PREFIX, but also ensure the canonical /api/v1 prefix works.
-// This prevents route-mismatch 404s when env.API_PREFIX is misconfigured on the server.
-const normalizedApiPrefix = String(env.API_PREFIX || '')
-  .trim()
-  .replace(/\/+$/, '');
-const canonicalPrefix = '/api/v1';
-app.use(normalizedApiPrefix || canonicalPrefix, routes);
-if (normalizedApiPrefix !== canonicalPrefix) {
-  app.use(canonicalPrefix, routes);
+// Always mount API routes at the canonical /api/v1 prefix used by the frontend.
+app.use(API_PREFIX, routes);
+
+if (env.API_PREFIX && env.API_PREFIX.replace(/\/+$/, '') !== API_PREFIX) {
+  logger.warn(`API_PREFIX env is "${env.API_PREFIX}" — routes are mounted at ${API_PREFIX}`);
 }
 
 app.use(notFound);
