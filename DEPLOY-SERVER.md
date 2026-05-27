@@ -1,11 +1,43 @@
 # Deploy backend to api.teacherpoint.in
 
+## Root cause (most common)
+
+Public URL returns **wrong app** if `/health` shows:
+
+```json
+{"ok":true,"service":"darotech-backend"}
+```
+
+Your **teacherpoint** app (correct) returns:
+
+```json
+{"status":"ok","authRoutes":["POST /auth/register",...]}
+```
+
+Fix nginx so `api.teacherpoint.in` → `http://127.0.0.1:4000` (teacherpoint-api), not darotech.
+
+---
+
 Your PM2 logs show Node **is running** on port **4000**, but the live site still returns **404 for `/auth/register`**. That means either:
 
-1. **Old code** is deployed (register route missing), or  
-2. **nginx** is proxying to the wrong port/app.
+1. **nginx points to the wrong app** (e.g. darotech-api), or  
+2. **No nginx proxy** for api.teacherpoint.in.
 
 Follow these steps **on the Ubuntu server**.
+
+---
+
+## Step 0 — Find what nginx is serving now
+
+```bash
+curl -s http://127.0.0.1:4000/health          # teacherpoint (correct)
+curl -s https://api.teacherpoint.in/health    # public (often wrong app)
+
+sudo grep -r "api.teacherpoint.in\|darotech\|proxy_pass" /etc/nginx/
+pm2 list
+```
+
+If public `/health` says `darotech-backend`, nginx must be updated (Step 3).
 
 ---
 
@@ -63,56 +95,61 @@ curl -s -X POST http://127.0.0.1:4000/api/v1/auth/register \
 
 ---
 
-## Step 3 — Fix nginx proxy
+## Step 3 — Fix nginx (point to teacherpoint on port 4000)
 
-Edit your site config (often `/etc/nginx/sites-available/api.teacherpoint.in`):
+`grep sites-enabled` may be **empty** — config is often in `/etc/nginx/conf.d/` or `/etc/nginx/sites-available/`.
 
-```nginx
-server {
-    listen 443 ssl http2;
-    server_name api.teacherpoint.in;
+### Option A — Edit existing api.teacherpoint.in block
 
-    # ssl_certificate ...;
-    # ssl_certificate_key ...;
-
-    location / {
-        proxy_pass http://127.0.0.1:4000;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-
-        # CORS (backup if Node middleware not deployed yet)
-        if ($request_method = OPTIONS) {
-            add_header Access-Control-Allow-Origin $http_origin always;
-            add_header Access-Control-Allow-Credentials true always;
-            add_header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS" always;
-            add_header Access-Control-Allow-Headers "Content-Type, Authorization, Accept" always;
-            return 204;
-        }
-        add_header Access-Control-Allow-Origin $http_origin always;
-        add_header Access-Control-Allow-Credentials true always;
-    }
-}
-```
-
-Apply:
+Find the file:
 
 ```bash
+sudo grep -rl "api.teacherpoint.in" /etc/nginx/
+```
+
+Open it and set:
+
+```nginx
+proxy_pass http://127.0.0.1:4000;
+```
+
+Keep your existing `ssl_certificate` and `ssl_certificate_key` lines — do not remove them.
+
+### Option B — Install repo config (if no site file exists)
+
+```bash
+cd /var/www/teacheron-backend/teacheron-backend
+sudo cp deploy/nginx-api.teacherpoint.in.conf /etc/nginx/sites-available/api.teacherpoint.in
+```
+
+Edit SSL paths (required for HTTPS):
+
+```bash
+sudo nano /etc/nginx/sites-available/api.teacherpoint.in
+```
+
+Uncomment and set:
+
+```nginx
+ssl_certificate /etc/letsencrypt/live/api.teacherpoint.in/fullchain.pem;
+ssl_certificate_key /etc/letsencrypt/live/api.teacherpoint.in/privkey.pem;
+```
+
+Enable and reload:
+
+```bash
+sudo ln -sf /etc/nginx/sites-available/api.teacherpoint.in /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-Public test:
+### Verify public URL hits teacherpoint (not darotech)
 
 ```bash
-curl -s https://api.teacherpoint.in/health | jq
-curl -s -X POST https://api.teacherpoint.in/api/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -H "Origin: https://teacherpoint.in" \
-  -d '{"name":"Test","email":"new@test.com","password":"Test@12345","role":"student"}'
+curl -s https://api.teacherpoint.in/health
 ```
+
+Must show `"authRoutes"` — **not** `"service":"darotech-backend"`.
 
 ---
 
