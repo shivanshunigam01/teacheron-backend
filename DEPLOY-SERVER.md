@@ -236,3 +236,73 @@ sudo nginx -t && sudo systemctl reload nginx
 ```
 
 **Local frontend dev:** use `website-hub/.env.development` with `VITE_API_URL=/api/v1` — Vite proxies to the API (no browser CORS).
+
+---
+
+## Enable HTTPS for api.teacherpoint.in (Let's Encrypt)
+
+Frontend (`https://teacherpoint.in`) **cannot** call `http://api.teacherpoint.in` (mixed content). API must be HTTPS.
+
+### 1. DNS
+
+Ensure `api.teacherpoint.in` A record points to your server IP.
+
+### 2. Install Certbot (if needed)
+
+```bash
+sudo apt update
+sudo apt install -y certbot python3-certbot-nginx
+```
+
+### 3. Obtain certificate (first time)
+
+If HTTPS is not set up yet, temporarily use HTTP-only nginx (proxy to `:4000`, **no** redirect), then:
+
+```bash
+sudo certbot certonly --nginx -d api.teacherpoint.in
+```
+
+Or interactive nginx plugin:
+
+```bash
+sudo certbot --nginx -d api.teacherpoint.in
+```
+
+### 4. Deploy production nginx config
+
+```bash
+cd /var/www/teacheron-backend/teacheron-backend
+sudo cp deploy/nginx-api.teacherpoint.in.conf /etc/nginx/sites-available/api.teacherpoint.in
+sudo ln -sf /etc/nginx/sites-available/api.teacherpoint.in /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+Config provides:
+- **Port 80** → 301 redirect to HTTPS
+- **Port 443** → SSL + reverse proxy to `http://127.0.0.1:4000`
+
+PM2 / Node stay on HTTP localhost — no backend code changes needed.
+
+### 5. Auto-renewal
+
+```bash
+sudo certbot renew --dry-run
+```
+
+### 6. Verify
+
+```bash
+curl -s https://api.teacherpoint.in/health
+curl -s https://api.teacherpoint.in/api/v1/health
+```
+
+### 7. Frontend env (production)
+
+Set on Vercel/hosting:
+
+```env
+VITE_API_BASE_URL=https://api.teacherpoint.in/api/v1
+VITE_API_URL=https://api.teacherpoint.in/api/v1
+```
+
+Redeploy frontend after changing env vars.

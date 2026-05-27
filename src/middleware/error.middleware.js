@@ -1,13 +1,10 @@
 import { ApiError } from '../utils/ApiError.js';
-import { applyCorsHeaders } from './cors.middleware.js';
 
 export function notFound(req, res, next) {
   next(ApiError.notFound(`Route not found: ${req.originalUrl}`));
 }
 
 export function errorHandler(err, req, res, _next) {
-  applyCorsHeaders(req, res);
-
   let status = err.statusCode || 500;
   let message = err.message || 'Server error';
   let errors = err.errors || [];

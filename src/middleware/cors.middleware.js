@@ -1,33 +1,28 @@
-/**
- * Set CORS headers on every response (including errors).
- * Browsers block JS from reading responses when CORS headers are missing or duplicated.
- * Nginx must NOT also add Access-Control-* headers (duplicate = CORS failure in browser).
- */
-export function applyCorsHeaders(req, res) {
-  const origin = req.headers.origin;
+import cors from 'cors';
 
-  if (origin) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Vary', 'Origin');
-  }
+/** Allowed browser origins — single source of truth for CORS. */
+export const ALLOWED_ORIGINS = [
+  'https://teacherpoint.in',
+  'https://www.teacherpoint.in',
+  'http://localhost:3000',
+  'http://localhost:5173',
+];
 
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    req.headers['access-control-request-headers'] ||
-      'Content-Type, Authorization, Accept, X-Requested-With',
-  );
-  res.setHeader('Access-Control-Max-Age', '86400');
-  res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Type');
-}
+export const corsOptions = {
+  origin(origin, callback) {
+    // Allow non-browser clients (curl, Postman, server-to-server) with no Origin header
+    if (!origin) return callback(null, true);
+    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
+  credentials: true,
+  methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
+  exposedHeaders: ['Content-Length', 'Content-Type'],
+  maxAge: 86400,
+  optionsSuccessStatus: 204,
+};
 
-export function corsMiddleware(req, res, next) {
-  applyCorsHeaders(req, res);
+export const corsMiddleware = cors(corsOptions);
 
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(204);
-  }
-
-  next();
-}
+export default corsMiddleware;

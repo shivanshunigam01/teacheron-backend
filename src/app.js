@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import helmet from 'helmet';
 import mongoSanitize from 'express-mongo-sanitize';
 import xss from 'xss-clean';
@@ -9,7 +10,7 @@ import logger from './config/logger.js';
 import { swaggerSpec } from './config/swagger.js';
 import routes from './routes/index.js';
 import { apiRateLimit } from './middleware/rateLimit.middleware.js';
-import { corsMiddleware } from './middleware/cors.middleware.js';
+import { corsMiddleware, corsOptions } from './middleware/cors.middleware.js';
 import { notFound, errorHandler } from './middleware/error.middleware.js';
 import { dbState } from './config/db.js';
 
@@ -18,7 +19,9 @@ const API_PREFIX = '/api/v1';
 
 app.set('trust proxy', 1);
 
+// CORS — handled only here (nginx must NOT add Access-Control-* headers)
 app.use(corsMiddleware);
+app.options('*', cors(corsOptions));
 
 app.use(
   helmet({
