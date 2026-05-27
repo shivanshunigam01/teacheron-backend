@@ -211,3 +211,28 @@ Then register from the browser. You should see lines like:
 `POST /api/v1/auth/register 201`
 
 If nothing appears but nginx access log shows hits, nginx is **not** forwarding to port **4000**.
+
+---
+
+## CORS errors in browser (API works in curl)
+
+**Symptom:** curl/Postman works, browser shows CORS error, Network tab response body is empty/blocked.
+
+**Cause:** nginx and Express both add `Access-Control-Allow-Origin` → duplicate headers → browser blocks the response.
+
+**Fix:**
+
+1. Update nginx config — remove all `add_header Access-Control-*` from `api.teacherpoint.in` (see `deploy/nginx-api.teacherpoint.in.conf`).
+2. Proxy OPTIONS to Node (do not answer OPTIONS in nginx).
+3. Redeploy backend + reload nginx:
+
+```bash
+cd /var/www/teacheron-backend/teacheron-backend
+git pull origin main
+npm install
+pm2 restart teacherpoint-api --update-env
+sudo cp deploy/nginx-api.teacherpoint.in.conf /etc/nginx/sites-available/api.teacherpoint.in
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+**Local frontend dev:** use `website-hub/.env.development` with `VITE_API_URL=/api/v1` — Vite proxies to the API (no browser CORS).
