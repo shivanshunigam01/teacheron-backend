@@ -48,8 +48,23 @@ app.get('/health', (req, res) =>
   }),
 );
 
+// Production/debug convenience endpoint (ensures the frontend can verify base mounting).
+// Always available at /api/v1/health regardless of env.API_PREFIX configuration.
+app.get('/api/v1/health', (req, res) => res.json({ success: true, message: 'TeacherPoint API is running' }));
+
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-app.use(env.API_PREFIX, routes);
+
+// Mount API routes under env.API_PREFIX, but also ensure the canonical /api/v1 prefix works.
+// This prevents route-mismatch 404s when env.API_PREFIX is misconfigured on the server.
+const normalizedApiPrefix = String(env.API_PREFIX || '')
+  .trim()
+  .replace(/\/+$/, '');
+const canonicalPrefix = '/api/v1';
+app.use(normalizedApiPrefix || canonicalPrefix, routes);
+if (normalizedApiPrefix !== canonicalPrefix) {
+  app.use(canonicalPrefix, routes);
+}
+
 app.use(notFound);
 app.use(errorHandler);
 

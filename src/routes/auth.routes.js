@@ -13,6 +13,17 @@ import {
 
 const r = Router();
 
+if (process.env.AUTH_ROUTE_DEBUG === 'true') {
+  // Helps verify that the auth router was actually mounted in production.
+  // Enable temporarily by setting AUTH_ROUTE_DEBUG=true and restarting the API.
+  // Endpoints are relative to the /auth mount in routes/index.js.
+  console.log('[TeacherPoint API] Auth routes mounted:', {
+    register: 'POST /auth/register',
+    login: 'POST /auth/login',
+    me: 'GET /auth/me',
+  });
+}
+
 r.post('/register', validate(registerSchema), c.register);
 r.post('/login', authRateLimit, validate(loginSchema), c.login);
 r.post('/refresh', validate(refreshSchema), c.refresh);
