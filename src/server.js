@@ -3,8 +3,10 @@ import app from './app.js';
 import { connectDB } from './config/db.js';
 import env from './config/env.js';
 import logger from './config/logger.js';
+import { verifySmtpConnection } from './services/email.service.js';
 
 await connectDB();
+await verifySmtpConnection();
 
 const server = app.listen(env.PORT, () => {
   logger.info(`API running on ${env.API_BASE_URL}/api/v1`);

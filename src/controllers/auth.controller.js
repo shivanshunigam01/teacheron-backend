@@ -9,6 +9,7 @@ import env from '../config/env.js';
 import * as tokenService from '../services/token.service.js';
 import { sendMail } from '../services/email.service.js';
 import { sendWelcomeEmail } from '../services/welcomeEmail.service.js';
+import logger from '../config/logger.js';
 import { computeProfileComplete, initialsFromName } from '../utils/profileComplete.js';
 
 const userId = (u) => (u._id ? String(u._id) : u.id);
@@ -57,16 +58,28 @@ export const register = asyncHandler(async (req, res) => {
   await user.save();
 
   let welcomeEmailSent = false;
+  let welcomeEmailError;
   try {
     const mailResult = await sendWelcomeEmail({ name, email: user.email, role });
     welcomeEmailSent = mailResult.sent;
+    if (mailResult.stub) {
+      welcomeEmailError = mailResult.reason === 'not_configured'
+        ? 'SMTP is not configured on this server'
+        : 'Email service unavailable';
+    }
   } catch (err) {
-    console.warn('[welcome-email]', err?.message || err);
+    welcomeEmailError = err?.message || 'Failed to send welcome email';
+    logger.error(`[welcome-email] ${welcomeEmailError}`);
+  }
+
+  const payload = { ...authPayload(user), welcomeEmailSent };
+  if (env.NODE_ENV === 'development' && welcomeEmailError) {
+    payload.welcomeEmailError = welcomeEmailError;
   }
 
   ApiResponse.created(
     res,
-    { ...authPayload(user), welcomeEmailSent },
+    payload,
     welcomeEmailSent
       ? 'Registered successfully — welcome email sent'
       : 'Registered successfully',
