@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import helmet from 'helmet';
 import mongoSanitize from 'express-mongo-sanitize';
 import xss from 'xss-clean';
@@ -9,15 +10,18 @@ import logger from './config/logger.js';
 import { swaggerSpec } from './config/swagger.js';
 import routes from './routes/index.js';
 import { apiRateLimit } from './middleware/rateLimit.middleware.js';
-import { corsMiddleware } from './middleware/cors.middleware.js';
+import { corsMiddleware, corsOptions } from './middleware/cors.middleware.js';
 import { notFound, errorHandler } from './middleware/error.middleware.js';
 import { dbState } from './config/db.js';
 
 const app = express();
+const API_PREFIX = '/api/v1';
 
 app.set('trust proxy', 1);
 
+// CORS — handled only here (nginx must NOT add Access-Control-* headers)
 app.use(corsMiddleware);
+app.options('*', cors(corsOptions));
 
 app.use(
   helmet({
@@ -35,21 +39,29 @@ app.use('/uploads', express.static(env.uploadDir));
 
 app.get('/health', (req, res) =>
   res.json({
+    success: true,
     status: 'ok',
     uptime: process.uptime(),
     db: dbState(),
-    apiPrefix: env.API_PREFIX,
+    apiPrefix: API_PREFIX,
     authRoutes: [
-      'POST /auth/register',
-      'POST /auth/login',
-      'GET /auth/me',
-      'PATCH /auth/profile',
+      'POST /api/v1/auth/register',
+      'POST /api/v1/auth/login',
+      'GET /api/v1/auth/me',
+      'PATCH /api/v1/auth/profile',
     ],
   }),
 );
 
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-app.use(env.API_PREFIX, routes);
+
+// Always mount API routes at the canonical /api/v1 prefix used by the frontend.
+app.use(API_PREFIX, routes);
+
+if (env.API_PREFIX && env.API_PREFIX.replace(/\/+$/, '') !== API_PREFIX) {
+  logger.warn(`API_PREFIX env is "${env.API_PREFIX}" — routes are mounted at ${API_PREFIX}`);
+}
+
 app.use(notFound);
 app.use(errorHandler);
 

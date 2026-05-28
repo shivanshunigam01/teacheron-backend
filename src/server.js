@@ -7,7 +7,9 @@ import logger from './config/logger.js';
 await connectDB();
 
 const server = app.listen(env.PORT, () => {
-  logger.info(`API running on ${env.API_BASE_URL}${env.API_PREFIX}`);
+  logger.info(`API running on ${env.API_BASE_URL}/api/v1`);
+  logger.info('Auth routes: POST /api/v1/auth/register, POST /api/v1/auth/login, GET /api/v1/auth/me');
+  logger.info('Health: GET /api/v1/health and GET /health');
 });
 
 const shutdown = (signal) => {

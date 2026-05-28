@@ -211,3 +211,98 @@ Then register from the browser. You should see lines like:
 `POST /api/v1/auth/register 201`
 
 If nothing appears but nginx access log shows hits, nginx is **not** forwarding to port **4000**.
+
+---
+
+## CORS errors in browser (API works in curl)
+
+**Symptom:** curl/Postman works, browser shows CORS error, Network tab response body is empty/blocked.
+
+**Cause:** nginx and Express both add `Access-Control-Allow-Origin` → duplicate headers → browser blocks the response.
+
+**Fix:**
+
+1. Update nginx config — remove all `add_header Access-Control-*` from `api.teacherpoint.in` (see `deploy/nginx-api.teacherpoint.in.conf`).
+2. Proxy OPTIONS to Node (do not answer OPTIONS in nginx).
+3. Redeploy backend + reload nginx:
+
+```bash
+cd /var/www/teacheron-backend/teacheron-backend
+git pull origin main
+npm install
+pm2 restart teacherpoint-api --update-env
+sudo cp deploy/nginx-api.teacherpoint.in.conf /etc/nginx/sites-available/api.teacherpoint.in
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+**Local frontend dev:** use `website-hub/.env.development` with `VITE_API_URL=/api/v1` — Vite proxies to the API (no browser CORS).
+
+---
+
+## Enable HTTPS for api.teacherpoint.in (Let's Encrypt)
+
+Frontend (`https://teacherpoint.in`) **cannot** call `http://api.teacherpoint.in` (mixed content). API must be HTTPS.
+
+### 1. DNS
+
+Ensure `api.teacherpoint.in` A record points to your server IP.
+
+### 2. Install Certbot (if needed)
+
+```bash
+sudo apt update
+sudo apt install -y certbot python3-certbot-nginx
+```
+
+### 3. Obtain certificate (first time)
+
+If HTTPS is not set up yet, temporarily use HTTP-only nginx (proxy to `:4000`, **no** redirect), then:
+
+```bash
+sudo certbot certonly --nginx -d api.teacherpoint.in
+```
+
+Or interactive nginx plugin:
+
+```bash
+sudo certbot --nginx -d api.teacherpoint.in
+```
+
+### 4. Deploy production nginx config
+
+```bash
+cd /var/www/teacheron-backend/teacheron-backend
+sudo cp deploy/nginx-api.teacherpoint.in.conf /etc/nginx/sites-available/api.teacherpoint.in
+sudo ln -sf /etc/nginx/sites-available/api.teacherpoint.in /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+Config provides:
+- **Port 80** → 301 redirect to HTTPS
+- **Port 443** → SSL + reverse proxy to `http://127.0.0.1:4000`
+
+PM2 / Node stay on HTTP localhost — no backend code changes needed.
+
+### 5. Auto-renewal
+
+```bash
+sudo certbot renew --dry-run
+```
+
+### 6. Verify
+
+```bash
+curl -s https://api.teacherpoint.in/health
+curl -s https://api.teacherpoint.in/api/v1/health
+```
+
+### 7. Frontend env (production)
+
+Set on Vercel/hosting:
+
+```env
+VITE_API_BASE_URL=https://api.teacherpoint.in/api/v1
+VITE_API_URL=https://api.teacherpoint.in/api/v1
+```
+
+Redeploy frontend after changing env vars.
