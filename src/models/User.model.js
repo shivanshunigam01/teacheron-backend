@@ -56,6 +56,10 @@ const userSchema = new Schema(
     refreshTokens: [{ token: String, expiresAt: Date }],
     passwordResetToken: String,
     passwordResetExpires: Date,
+    emailVerificationOtpHash: { type: String, select: false },
+    emailVerificationExpires: Date,
+    emailVerificationSentAt: Date,
+    welcomeEmailSent: { type: Boolean, default: false },
   },
   { timestamps: true },
 );

@@ -13,10 +13,11 @@ export async function fetchPublishedCoursesForWelcome() {
     const rows = await Course.find({ status: 'published' })
       .sort({ students: -1, rating: -1, createdAt: -1 })
       .limit(WELCOME_COURSE_LIMIT)
-      .select('title slug category instructorName price level duration students rating')
+      .select('title slug category instructorName price level duration students rating imageUrl')
       .lean();
 
     return rows.map((c) => ({
+      id: String(c._id),
       title: c.title,
       slug: c.slug,
       category: c.category,
@@ -26,6 +27,7 @@ export async function fetchPublishedCoursesForWelcome() {
       duration: c.duration,
       students: c.students,
       rating: c.rating,
+      imageUrl: c.imageUrl,
     }));
   } catch (err) {
     logger.warn(`[welcome-email] Could not load courses: ${err.message}`);

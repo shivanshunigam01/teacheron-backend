@@ -71,3 +71,9 @@ export const updateProfileSchema = z.object({
     studentProfile: studentProfileSchema.optional(),
   }),
 });
+
+export const verifyEmailSchema = z.object({
+  body: z.object({
+    otp: z.string().regex(/^\d{6}$/, 'Enter the 6-digit code from your email'),
+  }),
+});

@@ -9,6 +9,12 @@ import env from '../config/env.js';
 import * as tokenService from '../services/token.service.js';
 import { sendMail } from '../services/email.service.js';
 import { sendWelcomeEmail } from '../services/welcomeEmail.service.js';
+import {
+  issueEmailVerificationOtp,
+  verifyEmailOtp,
+  resendEmailVerificationOtp,
+  sendTeacherWelcomeIfReady,
+} from '../services/emailVerification.service.js';
 import logger from '../config/logger.js';
 import { computeProfileComplete, initialsFromName } from '../utils/profileComplete.js';
 
@@ -19,10 +25,12 @@ const issue = (u) => ({
   refreshToken: tokenService.signRefresh(userId(u)),
 });
 
-const authPayload = (user) => ({
+const authPayload = (user, extra = {}) => ({
   user: toJSON(user),
   ...issue(user),
   profileComplete: user.profileComplete,
+  requiresEmailVerification: user.role === 'teacher' && !user.isVerified,
+  ...extra,
 });
 
 export const register = asyncHandler(async (req, res) => {
@@ -40,8 +48,9 @@ export const register = asyncHandler(async (req, res) => {
     email: email.toLowerCase(),
     passwordHash,
     role,
-    isVerified: false,
+    isVerified: role !== 'teacher',
     profileComplete: false,
+    welcomeEmailSent: false,
     teacherProfile:
       role === 'teacher'
         ? {
@@ -57,15 +66,50 @@ export const register = asyncHandler(async (req, res) => {
   user.profileComplete = computeProfileComplete(user);
   await user.save();
 
+  const payloadExtra = {};
+
+  if (role === 'teacher') {
+    try {
+      const otpResult = await issueEmailVerificationOtp(user);
+      payloadExtra.verificationEmailSent = otpResult.sent;
+      if (env.NODE_ENV === 'development' && otpResult.devOtp) {
+        payloadExtra.devOtp = otpResult.devOtp;
+      }
+      if (!otpResult.sent) {
+        payloadExtra.verificationEmailError =
+          otpResult.reason === 'not_configured'
+            ? 'SMTP is not configured on this server'
+            : 'Could not send verification email';
+      }
+    } catch (err) {
+      payloadExtra.verificationEmailSent = false;
+      payloadExtra.verificationEmailError = err.message;
+      logger.error(`[otp-email] register: ${err.message}`);
+    }
+
+    return ApiResponse.created(
+      res,
+      authPayload(user, payloadExtra),
+      payloadExtra.verificationEmailSent
+        ? 'Account created — check your email for a verification code'
+        : 'Account created — verification email could not be sent',
+    );
+  }
+
+  // Student: welcome email immediately on signup
   let welcomeEmailSent = false;
   let welcomeEmailError;
   try {
     const mailResult = await sendWelcomeEmail({ name, email: user.email, role });
     welcomeEmailSent = mailResult.sent;
-    if (mailResult.stub) {
-      welcomeEmailError = mailResult.reason === 'not_configured'
-        ? 'SMTP is not configured on this server'
-        : 'Email service unavailable';
+    if (mailResult.sent) {
+      user.welcomeEmailSent = true;
+      await user.save();
+    } else if (mailResult.stub) {
+      welcomeEmailError =
+        mailResult.reason === 'not_configured'
+          ? 'SMTP is not configured on this server'
+          : 'Email service unavailable';
     }
   } catch (err) {
     welcomeEmailError = err?.message || 'Failed to send welcome email';
@@ -80,10 +124,51 @@ export const register = asyncHandler(async (req, res) => {
   ApiResponse.created(
     res,
     payload,
-    welcomeEmailSent
-      ? 'Registered successfully — welcome email sent'
-      : 'Registered successfully',
+    welcomeEmailSent ? 'Registered successfully — welcome email sent' : 'Registered successfully',
   );
+});
+
+export const verifyEmail = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user.id).select('+emailVerificationOtpHash');
+  if (!user) throw ApiError.notFound('User not found');
+  if (user.role !== 'teacher') {
+    throw ApiError.badRequest('Email verification is only required for tutor accounts');
+  }
+  if (user.isVerified) {
+    return ApiResponse.ok(res, authPayload(user), 'Email already verified');
+  }
+
+  try {
+    await verifyEmailOtp(user, req.body.otp);
+  } catch (err) {
+    throw ApiError.badRequest(err.message);
+  }
+
+  const refreshed = await User.findById(user._id);
+  ApiResponse.ok(
+    res,
+    authPayload(refreshed),
+    'Email verified — complete your tutor profile to continue',
+  );
+});
+
+export const resendVerification = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user.id);
+  if (!user) throw ApiError.notFound('User not found');
+  if (user.role !== 'teacher') {
+    throw ApiError.badRequest('Email verification is only required for tutor accounts');
+  }
+  if (user.isVerified) {
+    return ApiResponse.ok(res, { alreadyVerified: true }, 'Email already verified');
+  }
+
+  try {
+    const result = await resendEmailVerificationOtp(user);
+    const data = { sent: result.sent, ...(env.NODE_ENV === 'development' && result.devOtp ? { devOtp: result.devOtp } : {}) };
+    ApiResponse.ok(res, data, result.sent ? 'Verification code sent' : 'Could not send verification code');
+  } catch (err) {
+    throw ApiError.badRequest(err.message);
+  }
 });
 
 export const login = asyncHandler(async (req, res) => {
@@ -123,6 +208,10 @@ export const updateProfile = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user.id);
   if (!user) throw ApiError.notFound('User not found');
 
+  if (user.role === 'teacher' && !user.isVerified) {
+    throw ApiError.forbidden('Verify your email before completing your tutor profile');
+  }
+
   const { name, phone, phoneCountryCode, avatarUrl, theme, locale, teacherProfile, studentProfile } = req.body;
 
   if (name) user.name = name;
@@ -151,10 +240,21 @@ export const updateProfile = asyncHandler(async (req, res) => {
     };
   }
 
+  const wasComplete = user.profileComplete;
   user.profileComplete = computeProfileComplete(user);
   await user.save();
 
-  ApiResponse.ok(res, toJSON(user), 'Profile updated');
+  let welcomeEmailSent = false;
+  if (user.role === 'teacher' && user.profileComplete && !wasComplete) {
+    const welcome = await sendTeacherWelcomeIfReady(user);
+    welcomeEmailSent = Boolean(welcome.sent);
+  }
+
+  ApiResponse.ok(
+    res,
+    { ...toJSON(user), welcomeEmailSent, requiresEmailVerification: false },
+    welcomeEmailSent ? 'Profile complete — welcome email sent' : 'Profile updated',
+  );
 });
 
 export const forgotPassword = asyncHandler(async (req, res) => {

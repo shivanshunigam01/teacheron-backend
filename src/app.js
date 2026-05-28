@@ -1,4 +1,6 @@
 import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import cors from 'cors';
 import helmet from 'helmet';
 import mongoSanitize from 'express-mongo-sanitize';
@@ -37,6 +39,10 @@ app.use(xss());
 app.use(morgan('combined', { stream: logger.stream }));
 app.use(apiRateLimit);
 app.use('/uploads', express.static(env.uploadDir));
+app.use(
+  '/assets/email',
+  express.static(path.join(path.dirname(fileURLToPath(import.meta.url)), '../assets/email')),
+);
 
 app.get('/health', async (req, res) => {
   const smtp = await getSmtpStatus();
@@ -49,6 +55,8 @@ app.get('/health', async (req, res) => {
     apiPrefix: API_PREFIX,
     authRoutes: [
       'POST /api/v1/auth/register',
+      'POST /api/v1/auth/verify-email',
+      'POST /api/v1/auth/resend-verification',
       'POST /api/v1/auth/login',
       'GET /api/v1/auth/me',
       'PATCH /api/v1/auth/profile',

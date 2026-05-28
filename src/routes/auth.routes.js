@@ -9,6 +9,7 @@ import {
   refreshSchema,
   resetSchema,
   updateProfileSchema,
+  verifyEmailSchema,
 } from '../validators/auth.validator.js';
 
 const r = Router();
@@ -25,6 +26,8 @@ if (process.env.AUTH_ROUTE_DEBUG === 'true') {
 }
 
 r.post('/register', validate(registerSchema), c.register);
+r.post('/verify-email', verifyJWT, authRateLimit, validate(verifyEmailSchema), c.verifyEmail);
+r.post('/resend-verification', verifyJWT, authRateLimit, c.resendVerification);
 r.post('/login', authRateLimit, validate(loginSchema), c.login);
 r.post('/refresh', validate(refreshSchema), c.refresh);
 r.post('/logout', verifyJWT, c.logout);
