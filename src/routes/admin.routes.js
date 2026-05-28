@@ -5,6 +5,7 @@ import * as banner from '../controllers/banner.controller.js';
 import { verifyJWT, requireRole } from '../middleware/auth.middleware.js';
 import { validate } from '../middleware/validate.middleware.js';
 import { adminCreateUserSchema, adminUpdateUserSchema } from '../validators/admin.validator.js';
+import { createBannerSchema, updateBannerSchema } from '../validators/banner.validator.js';
 
 const r = Router();
 r.use(verifyJWT, requireRole('admin'));
@@ -22,8 +23,8 @@ r.get('/smtp-config', c.getSmtp);
 r.patch('/smtp-config', c.updateSmtp);
 r.post('/notifications', c.broadcast);
 r.get('/banners', banner.list);
-r.post('/banners', banner.create);
-r.patch('/banners/:id', banner.update);
+r.post('/banners', validate(createBannerSchema), banner.create);
+r.patch('/banners/:id', validate(updateBannerSchema), banner.update);
 r.delete('/banners/:id', banner.remove);
 
 export default r;

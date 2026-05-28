@@ -1,3 +1,25 @@
 export * from './banner.base.controller.js';
-import Banner from '../models/Banner.model.js';import {ApiResponse} from '../utils/ApiResponse.js';import {asyncHandler} from '../utils/asyncHandler.js';import {toJSON} from '../utils/serialize.js';
-export const active=asyncHandler(async(req,res)=>{const now=new Date();const vals=[req.query.city,req.query.country,'global'].filter(Boolean);const item=await Banner.findOne({active:true,$or:[{targetValue:{$in:vals}},{targetType:'global'}],$and:[{$or:[{startAt:{$exists:false}},{startAt:{$lte:now}}]},{$or:[{endAt:{$exists:false}},{endAt:{$gte:now}}]}]}).sort('-priority');ApiResponse.ok(res,toJSON(item),'Active banner fetched');});
+import Banner from '../models/Banner.model.js';
+import { ApiResponse } from '../utils/ApiResponse.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
+import { toJSONList } from '../utils/serialize.js';
+
+/** Public: all active banners within schedule (client filters by geo/language/placement). */
+export const active = asyncHandler(async (req, res) => {
+  const now = new Date();
+  const filter = {
+    active: true,
+    $and: [
+      {
+        $or: [{ startAt: { $exists: false } }, { startAt: null }, { startAt: { $lte: now } }],
+      },
+      {
+        $or: [{ endAt: { $exists: false } }, { endAt: null }, { endAt: { $gte: now } }],
+      },
+    ],
+  };
+  if (req.query.placement) filter.placement = req.query.placement;
+
+  const items = await Banner.find(filter).sort({ priority: -1, createdAt: -1 });
+  ApiResponse.ok(res, { items: toJSONList(items) }, 'Active banners fetched');
+});

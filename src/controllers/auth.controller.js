@@ -8,6 +8,7 @@ import { toJSON } from '../utils/serialize.js';
 import env from '../config/env.js';
 import * as tokenService from '../services/token.service.js';
 import { sendMail } from '../services/email.service.js';
+import { sendWelcomeEmail } from '../services/welcomeEmail.service.js';
 import { computeProfileComplete, initialsFromName } from '../utils/profileComplete.js';
 
 const userId = (u) => (u._id ? String(u._id) : u.id);
@@ -55,13 +56,21 @@ export const register = asyncHandler(async (req, res) => {
   user.profileComplete = computeProfileComplete(user);
   await user.save();
 
+  let welcomeEmailSent = false;
   try {
-    await sendMail({ to: email, subject: 'Welcome to TeacherPoint', html: `<h2>Welcome ${name}</h2>` });
-  } catch {
-    /* SMTP optional in dev */
+    const mailResult = await sendWelcomeEmail({ name, email: user.email, role });
+    welcomeEmailSent = mailResult.sent;
+  } catch (err) {
+    console.warn('[welcome-email]', err?.message || err);
   }
 
-  ApiResponse.created(res, authPayload(user), 'Registered successfully');
+  ApiResponse.created(
+    res,
+    { ...authPayload(user), welcomeEmailSent },
+    welcomeEmailSent
+      ? 'Registered successfully — welcome email sent'
+      : 'Registered successfully',
+  );
 });
 
 export const login = asyncHandler(async (req, res) => {
