@@ -21,6 +21,7 @@ r.get('/reports', c.reports);
 r.patch('/reports/:id', c.updateReport);
 r.get('/smtp-config', c.getSmtp);
 r.patch('/smtp-config', c.updateSmtp);
+r.post('/smtp-config/test', c.testSmtp);
 r.post('/notifications', c.broadcast);
 r.get('/banners', banner.list);
 r.post('/banners', validate(createBannerSchema), banner.create);

@@ -42,7 +42,9 @@ const env = {
     fromName: process.env.MAIL_FROM_NAME || 'TeachersPoints',
     fromEmail: process.env.MAIL_FROM_EMAIL || process.env.SMTP_USER || 'no-reply@teacherpoint.com',
   },
-  clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
+  clientUrl:
+    process.env.CLIENT_URL ||
+    (process.env.NODE_ENV === 'production' ? 'https://teacherpoint.in' : 'http://localhost:5173'),
 };
 
 export default env;

@@ -1,23 +1,20 @@
 import nodemailer from 'nodemailer';
-import env from '../config/env.js';
 import logger from '../config/logger.js';
+import { getSmtpSettings, invalidateSmtpCache } from './smtpConfig.service.js';
 
 let cachedTransport = null;
+let cachedTransportKey = '';
 let verifyPromise = null;
 
-function isSmtpConfigured() {
-  return Boolean(env.smtp.user && env.smtp.pass);
+function transportKey(settings) {
+  return `${settings.host}:${settings.port}:${settings.user}:${settings.secure}`;
 }
 
-function buildTransportOptions() {
-  const { host, port, secure, user, pass } = env.smtp;
+function buildTransportOptions(settings) {
+  const { host, port, secure, user, pass } = settings;
 
-  // Gmail: use well-tested defaults (STARTTLS on 587)
-  if (host?.includes('gmail.com')) {
-    return {
-      service: 'gmail',
-      auth: { user, pass },
-    };
+  if (host?.includes('gmail.com') || user?.includes('@gmail.com')) {
+    return { service: 'gmail', auth: { user, pass } };
   }
 
   return {
@@ -32,19 +29,32 @@ function buildTransportOptions() {
   };
 }
 
-function getTransport() {
-  if (!isSmtpConfigured()) return null;
-  if (!cachedTransport) {
-    cachedTransport = nodemailer.createTransport(buildTransportOptions());
+async function getTransport() {
+  const settings = await getSmtpSettings();
+  if (!settings) return { transport: null, settings: null };
+
+  const key = transportKey(settings);
+  if (!cachedTransport || cachedTransportKey !== key) {
+    cachedTransport = nodemailer.createTransport(buildTransportOptions(settings));
+    cachedTransportKey = key;
   }
-  return cachedTransport;
+
+  return { transport: cachedTransport, settings };
 }
 
-/** Call on server start — logs whether SMTP is ready. */
+function resetTransport() {
+  cachedTransport = null;
+  cachedTransportKey = '';
+  verifyPromise = null;
+  invalidateSmtpCache();
+}
+
+/** Call on server start — logs whether SMTP is ready (env or database). */
 export async function verifySmtpConnection() {
-  if (!isSmtpConfigured()) {
+  const settings = await getSmtpSettings();
+  if (!settings) {
     logger.warn(
-      'SMTP not configured (set SMTP_USER and SMTP_PASS in backend/.env). Welcome emails will be skipped.',
+      'SMTP not configured. Set SMTP_USER/SMTP_PASS in server .env or Admin → Mail settings. Welcome emails disabled.',
     );
     return { ok: false, reason: 'not_configured' };
   }
@@ -52,13 +62,14 @@ export async function verifySmtpConnection() {
   if (!verifyPromise) {
     verifyPromise = (async () => {
       try {
-        const transport = getTransport();
+        const { transport } = await getTransport();
         await transport.verify();
-        logger.info(`SMTP ready — sending as ${env.smtp.fromEmail}`);
-        return { ok: true };
+        logger.info(
+          `SMTP ready (${settings.source}) — sending as ${settings.fromEmail}`,
+        );
+        return { ok: true, source: settings.source };
       } catch (err) {
-        cachedTransport = null;
-        verifyPromise = null;
+        resetTransport();
         logger.error(`SMTP verification failed: ${err.message}`);
         return { ok: false, reason: err.message };
       }
@@ -72,16 +83,16 @@ export async function verifySmtpConnection() {
  * @param {{ to: string; subject: string; html: string; text?: string }} opts
  */
 export async function sendMail({ to, subject, html, text }) {
-  if (!isSmtpConfigured()) {
-    logger.warn('[MAIL STUB] SMTP credentials missing', { to, subject });
+  const { transport, settings } = await getTransport();
+
+  if (!transport || !settings) {
+    logger.warn('[MAIL STUB] SMTP not configured', { to, subject });
     return { stub: true, reason: 'not_configured' };
   }
 
-  const transport = getTransport();
-
   try {
     const info = await transport.sendMail({
-      from: `"${env.smtp.fromName}" <${env.smtp.fromEmail}>`,
+      from: `"${settings.fromName}" <${settings.fromEmail}>`,
       to,
       subject,
       html,
@@ -90,8 +101,7 @@ export async function sendMail({ to, subject, html, text }) {
     logger.info(`[MAIL SENT] to=${to} id=${info.messageId}`);
     return { stub: false, messageId: info.messageId };
   } catch (err) {
-    cachedTransport = null;
-    verifyPromise = null;
+    resetTransport();
     logger.error(`[MAIL FAILED] to=${to} — ${err.message}`);
     throw err;
   }

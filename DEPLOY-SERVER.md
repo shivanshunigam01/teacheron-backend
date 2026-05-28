@@ -156,18 +156,49 @@ Must show `"authRoutes"` — **not** `"service":"darotech-backend"`.
 ## Step 4 — Environment (`.env` on server)
 
 ```env
+NODE_ENV=production
 PORT=4000
 API_PREFIX=/api/v1
 API_BASE_URL=https://api.teacherpoint.in
+CLIENT_URL=https://teacherpoint.in
 MONGO_URI=your_mongodb_uri
 JWT_ACCESS_SECRET=...
 JWT_REFRESH_SECRET=...
+
+# Welcome emails (student + teacher signup) — REQUIRED in production
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your@gmail.com
+SMTP_PASS=your_gmail_app_password
+MAIL_FROM_NAME=TeachersPoints
+MAIL_FROM_EMAIL=your@gmail.com
 ```
+
+Use a [Gmail App Password](https://support.google.com/accounts/answer/185833) (16 chars, no spaces). `MAIL_FROM_EMAIL` must match `SMTP_USER` for Gmail.
 
 After editing `.env`:
 
 ```bash
 pm2 restart teacherpoint-api
+pm2 logs teacherpoint-api --lines 20
+```
+
+You should see: `SMTP ready (env) — sending as your@gmail.com`
+
+Verify:
+
+```bash
+curl -s https://api.teacherpoint.in/health | jq '.smtp'
+# { "configured": true, "source": "env", "fromEmail": "..." }
+```
+
+**Alternative:** set SMTP in Admin → **Mail settings** (saved to MongoDB) if you prefer not to use `.env`.
+
+Test welcome email on server:
+
+```bash
+npm run test:smtp
 ```
 
 ---

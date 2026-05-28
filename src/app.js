@@ -13,6 +13,7 @@ import { apiRateLimit } from './middleware/rateLimit.middleware.js';
 import { corsMiddleware, corsOptions } from './middleware/cors.middleware.js';
 import { notFound, errorHandler } from './middleware/error.middleware.js';
 import { dbState } from './config/db.js';
+import { getSmtpStatus } from './services/smtpConfig.service.js';
 
 const app = express();
 const API_PREFIX = '/api/v1';
@@ -37,12 +38,14 @@ app.use(morgan('combined', { stream: logger.stream }));
 app.use(apiRateLimit);
 app.use('/uploads', express.static(env.uploadDir));
 
-app.get('/health', (req, res) =>
+app.get('/health', async (req, res) => {
+  const smtp = await getSmtpStatus();
   res.json({
     success: true,
     status: 'ok',
     uptime: process.uptime(),
     db: dbState(),
+    smtp,
     apiPrefix: API_PREFIX,
     authRoutes: [
       'POST /api/v1/auth/register',
@@ -50,8 +53,9 @@ app.get('/health', (req, res) =>
       'GET /api/v1/auth/me',
       'PATCH /api/v1/auth/profile',
     ],
-  }),
-);
+    welcomeEmail: 'Sent on student/teacher signup when SMTP is configured',
+  });
+});
 
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
