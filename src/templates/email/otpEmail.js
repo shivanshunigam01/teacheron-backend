@@ -1,6 +1,6 @@
-import env from '../../config/env.js';
 import { escapeHtml } from './escapeHtml.js';
-import { wrapEmail } from './baseLayout.js';
+import { wrapEmail, emailButton } from './baseLayout.js';
+import { getVerifyEmailUrl } from './brand.js';
 
 /**
  * @param {{ name: string; email: string; otp: string }} params
@@ -29,6 +29,7 @@ export function buildOtpEmail({ name, otp }) {
     <p style="margin:16px 0 0;font-size:13px;line-height:1.6;color:#94a3b8;text-align:center;">
       After verification you will complete your tutor profile. Your welcome email with course highlights is sent once your profile is complete.
     </p>
+    ${emailButton(getVerifyEmailUrl(), 'Enter verification code')}
   `;
 
   const html = wrapEmail({
@@ -47,6 +48,7 @@ export function buildOtpEmail({ name, otp }) {
     `This code expires in ${minutes} minutes.`,
     '',
     'After verification, complete your tutor profile in the app.',
+    `Verify email: ${getVerifyEmailUrl()}`,
     'Your welcome email will be sent once your profile is complete.',
     '',
     '— TeachersPoints',

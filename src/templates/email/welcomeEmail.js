@@ -1,7 +1,6 @@
-import env from '../../config/env.js';
 import { escapeHtml } from './escapeHtml.js';
 import { wrapEmail, emailButton, emailButtonOutline, featureList, sectionHeading } from './baseLayout.js';
-import { getCourseDetailUrl, getCoursesCatalogUrl } from './brand.js';
+import { getCourseDetailUrl, getCoursesCatalogUrl, getLoginUrl, getProfileUrl } from './brand.js';
 
 const PRIMARY = '#6366f1';
 const BORDER = '#e2e8f0';
@@ -114,8 +113,8 @@ function courseListSection(courses, heading, btnLabel) {
 export function buildWelcomeEmail({ name, email, role, courses = [] }) {
   const content = copy[role] ?? copy.student;
   const coursesUrl = getCoursesCatalogUrl();
-  const profileUrl = `${env.clientUrl.replace(/\/$/, '')}/profile`;
-  const loginUrl = `${env.clientUrl.replace(/\/$/, '')}/login`;
+  const profileUrl = getProfileUrl();
+  const loginUrl = getLoginUrl();
   const safeName = escapeHtml(name);
   const safeEmail = escapeHtml(email);
 

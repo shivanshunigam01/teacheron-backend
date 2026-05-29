@@ -1,5 +1,5 @@
-import env from '../../config/env.js';
 import { escapeHtml } from './escapeHtml.js';
+import { getCourseDetailUrl, getCoursesCatalogUrl, getEmailClientUrl } from './brand.js';
 
 const PRIMARY = '#4f46e5';
 const BORDER = '#e2e8f0';
@@ -18,13 +18,12 @@ function formatPrice(price) {
 export function courseCatalogHtml(courses, { heading, viewAllLabel = 'Browse all courses' } = {}) {
   if (!courses?.length) return '';
 
-  const clientUrl = env.clientUrl.replace(/\/$/, '');
-  const coursesUrl = `${clientUrl}/courses`;
+  const coursesUrl = getCoursesCatalogUrl();
   const safeHeading = escapeHtml(heading ?? 'Popular courses for you');
 
   const rows = courses
     .map((c) => {
-      const href = c.slug ? `${coursesUrl}/${escapeHtml(c.slug)}` : coursesUrl;
+      const href = escapeHtml(getCourseDetailUrl(c));
       const title = escapeHtml(c.title);
       const meta = [
         c.category ? escapeHtml(c.category) : null,
@@ -82,7 +81,7 @@ export function courseCatalogHtml(courses, { heading, viewAllLabel = 'Browse all
 
 export function courseCatalogText(courses, heading = 'Available courses') {
   if (!courses?.length) return '';
-  const clientUrl = env.clientUrl.replace(/\/$/, '');
+  const clientUrl = getEmailClientUrl();
   const lines = [
     '',
     heading,

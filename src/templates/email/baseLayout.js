@@ -1,6 +1,5 @@
-import env from '../../config/env.js';
 import { escapeHtml } from './escapeHtml.js';
-import { getBrandLogoUrl } from './brand.js';
+import { getBrandLogoUrl, getEmailClientUrl } from './brand.js';
 
 const BRAND = 'TeachersPoints';
 const PRIMARY = '#6366f1';
@@ -16,7 +15,7 @@ const CARD_BG = '#ffffff';
  * @param {{ preheader?: string, title: string; bodyHtml: string }} opts
  */
 export function wrapEmail({ preheader = '', title, bodyHtml }) {
-  const clientUrl = env.clientUrl.replace(/\/$/, '');
+  const clientUrl = getEmailClientUrl();
   const logoUrl = getBrandLogoUrl();
   const year = new Date().getFullYear();
   const safeTitle = escapeHtml(title);

@@ -16,6 +16,7 @@ import { corsMiddleware, corsOptions } from './middleware/cors.middleware.js';
 import { notFound, errorHandler } from './middleware/error.middleware.js';
 import { dbState } from './config/db.js';
 import { getSmtpStatus } from './services/smtpConfig.service.js';
+import { getEmailClientUrl } from './templates/email/brand.js';
 
 const app = express();
 const API_PREFIX = '/api/v1';
@@ -52,6 +53,7 @@ app.get('/health', async (req, res) => {
     uptime: process.uptime(),
     db: dbState(),
     smtp,
+    emailLinksBase: getEmailClientUrl(),
     apiPrefix: API_PREFIX,
     authRoutes: [
       'POST /api/v1/auth/register',
