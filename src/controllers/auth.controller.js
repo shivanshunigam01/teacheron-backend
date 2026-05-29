@@ -17,6 +17,7 @@ import {
 } from '../services/emailVerification.service.js';
 import logger from '../config/logger.js';
 import { computeProfileComplete, initialsFromName } from '../utils/profileComplete.js';
+import { recordUserIpActivity } from '../services/ipMonitor.service.js';
 
 const userId = (u) => (u._id ? String(u._id) : u.id);
 
@@ -65,6 +66,12 @@ export const register = asyncHandler(async (req, res) => {
 
   user.profileComplete = computeProfileComplete(user);
   await user.save();
+
+  try {
+    await recordUserIpActivity({ user, req, action: 'register' });
+  } catch (err) {
+    logger.error(`[ip-monitor] register: ${err.message}`);
+  }
 
   const payloadExtra = {};
 
@@ -181,6 +188,12 @@ export const login = asyncHandler(async (req, res) => {
 
   user.profileComplete = computeProfileComplete(user);
   await user.save();
+
+  try {
+    await recordUserIpActivity({ user, req, action: 'login' });
+  } catch (err) {
+    logger.error(`[ip-monitor] login: ${err.message}`);
+  }
 
   ApiResponse.ok(res, authPayload(user), 'Login successful');
 });

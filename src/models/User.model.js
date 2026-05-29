@@ -60,10 +60,18 @@ const userSchema = new Schema(
     emailVerificationExpires: Date,
     emailVerificationSentAt: Date,
     welcomeEmailSent: { type: Boolean, default: false },
+    registrationIp: { type: String, index: true },
+    lastLoginIp: { type: String, index: true },
+    lastLoginAt: Date,
+    ipRiskFlag: { type: Boolean, default: false },
+    ipAdminNote: { type: String, default: '' },
   },
   { timestamps: true },
 );
 
 userSchema.index({ name: 'text', email: 'text', 'teacherProfile.subjects': 'text' });
+userSchema.index({ registrationIp: 1 });
+userSchema.index({ lastLoginIp: 1 });
+userSchema.index({ ipRiskFlag: 1 });
 
 export default mongoose.model('User', userSchema);

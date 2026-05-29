@@ -1,6 +1,56 @@
-import Certificate from '../models/Certificate.model.js';import {ApiError} from '../utils/ApiError.js';import {ApiResponse} from '../utils/ApiResponse.js';import {asyncHandler} from '../utils/asyncHandler.js';import {getPagination,paginationMeta} from '../utils/pagination.js';import {toJSON,toJSONList} from '../utils/serialize.js';
-export const list=asyncHandler(async(req,res)=>{const {page,limit,skip,sort}=getPagination(req.query);const filter={};if(req.query.q) filter.$text={$search:req.query.q}; for(const k of ['status','category','city','country','role','targetType']) if(req.query[k]) filter[k]=req.query[k]; const [items,total]=await Promise.all([Certificate.find(filter).sort(sort).skip(skip).limit(limit),Certificate.countDocuments(filter)]);ApiResponse.ok(res,{items:toJSONList(items),pagination:paginationMeta(total,page,limit)},'Fetched successfully');});
-export const getById=asyncHandler(async(req,res)=>{const item=await Certificate.findById(req.params.id);if(!item) throw ApiError.notFound();ApiResponse.ok(res,toJSON(item),'Fetched successfully');});
-export const create=asyncHandler(async(req,res)=>{const item=await Certificate.create({...req.body,createdBy:req.user?.id,sellerId:req.user?.id,userId:req.user?.id});ApiResponse.created(res,toJSON(item),'Created successfully');});
-export const update=asyncHandler(async(req,res)=>{const item=await Certificate.findByIdAndUpdate(req.params.id,req.body,{new:true,runValidators:true});if(!item) throw ApiError.notFound();ApiResponse.ok(res,toJSON(item),'Updated successfully');});
-export const remove=asyncHandler(async(req,res)=>{const item=await Certificate.findByIdAndDelete(req.params.id);if(!item) throw ApiError.notFound();ApiResponse.ok(res,{},'Deleted successfully');});
+import Certificate from '../models/Certificate.model.js';
+import { ApiError } from '../utils/ApiError.js';
+import { ApiResponse } from '../utils/ApiResponse.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
+import { getPagination, paginationMeta } from '../utils/pagination.js';
+import { toJSON, toJSONList } from '../utils/serialize.js';
+
+function shapeCertificate(doc) {
+  const c = toJSON(doc);
+  return {
+    id: c.id,
+    enrollmentId: c.enrollmentId?.toString?.() || c.enrollmentId,
+    courseId: c.courseId?.toString?.() || c.courseId,
+    studentName: c.studentName,
+    courseTitle: c.courseTitle,
+    instructor: c.instructorName,
+    serial: c.certificateNumber,
+    issuedAt: c.issuedAt,
+  };
+}
+
+export const mine = asyncHandler(async (req, res) => {
+  const items = await Certificate.find({ userId: req.user.id }).sort({ issuedAt: -1 });
+  ApiResponse.ok(res, { items: items.map(shapeCertificate) }, 'Certificates fetched');
+});
+
+export const getByNumber = asyncHandler(async (req, res) => {
+  const item = await Certificate.findOne({ certificateNumber: req.params.serial });
+  if (!item) throw ApiError.notFound('Certificate not found');
+  ApiResponse.ok(res, shapeCertificate(item), 'Certificate verified');
+});
+
+export const getById = asyncHandler(async (req, res) => {
+  const item = await Certificate.findById(req.params.id);
+  if (!item) throw ApiError.notFound();
+  if (item.userId.toString() !== req.user?.id && req.user?.role !== 'admin') {
+    throw ApiError.forbidden();
+  }
+  ApiResponse.ok(res, shapeCertificate(item), 'Certificate fetched');
+});
+
+export const list = asyncHandler(async (req, res) => {
+  const { page, limit, skip, sort } = getPagination(req.query);
+  const filter = {};
+  if (req.query.userId) filter.userId = req.query.userId;
+  if (req.query.courseId) filter.courseId = req.query.courseId;
+  const [items, total] = await Promise.all([
+    Certificate.find(filter).sort(sort).skip(skip).limit(limit),
+    Certificate.countDocuments(filter),
+  ]);
+  ApiResponse.ok(
+    res,
+    { items: items.map(shapeCertificate), pagination: paginationMeta(total, page, limit) },
+    'Certificates fetched',
+  );
+});

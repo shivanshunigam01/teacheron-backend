@@ -1,5 +1,6 @@
 import { ApiError } from '../utils/ApiError.js';
 import * as tokenService from '../services/token.service.js';
+import User from '../models/User.model.js';
 
 function readBearerToken(req) {
   const h = req.headers.authorization;
@@ -24,11 +25,17 @@ function attachUserFromToken(req, token) {
   }
 }
 
-export const verifyJWT = (req, res, next) => {
-  const token = readBearerToken(req);
-  if (!token) throw ApiError.unauthorized();
-  attachUserFromToken(req, token);
-  next();
+export const verifyJWT = async (req, res, next) => {
+  try {
+    const token = readBearerToken(req);
+    if (!token) throw ApiError.unauthorized();
+    attachUserFromToken(req, token);
+    const user = await User.findById(req.user.id).select('isActive');
+    if (!user?.isActive) throw ApiError.forbidden('Account is disabled');
+    next();
+  } catch (err) {
+    next(err);
+  }
 };
 
 export const optionalJWT = (req, res, next) => {

@@ -10,6 +10,7 @@ import Listing from '../models/Listing.model.js';
 import Accommodation from '../models/Accommodation.model.js';
 import Banner from '../models/Banner.model.js';
 import { computeProfileComplete } from './profileComplete.js';
+import { CATEGORY_SEED, buildCourseSeed } from './seedCourses.js';
 
 await connectDB();
 await Promise.all([
@@ -61,6 +62,102 @@ const teacher = await User.create({
 teacher.profileComplete = computeProfileComplete(teacher);
 await teacher.save();
 
+const extraTutorHash = await bcrypt.hash('Teacher@123', env.BCRYPT_ROUNDS);
+await User.insertMany([
+  {
+    name: 'Priya Sharma',
+    email: 'priya.tutor@teacherpoint.com',
+    passwordHash: extraTutorHash,
+    role: 'teacher',
+    isVerified: true,
+    teacherProfile: {
+      subjects: ['Biology', 'Chemistry'],
+      bio: 'NEET specialist with 95% student success rate.',
+      experience: 6,
+      hourlyRate: 22,
+      location: 'Delhi, India',
+      languages: ['English', 'Hindi'],
+      gender: 'female',
+      verified: true,
+      online: true,
+      initials: 'PS',
+      gradient: 'from-pink-500 to-rose-500',
+      rating: 4.8,
+      reviewCount: 167,
+      availability: 'Evenings',
+    },
+  },
+  {
+    name: 'Rahul Mehta',
+    email: 'rahul.tutor@teacherpoint.com',
+    passwordHash: extraTutorHash,
+    role: 'teacher',
+    isVerified: true,
+    teacherProfile: {
+      subjects: ['Computer Science', 'Python'],
+      bio: 'Ex-Google engineer teaching DSA and full-stack development.',
+      experience: 10,
+      hourlyRate: 30,
+      location: 'Bengaluru, India',
+      languages: ['English', 'Hindi'],
+      gender: 'male',
+      verified: true,
+      online: true,
+      initials: 'RM',
+      gradient: 'from-indigo-500 to-violet-500',
+      rating: 4.9,
+      reviewCount: 421,
+      availability: 'Daily',
+    },
+  },
+  {
+    name: 'Emma Smith',
+    email: 'emma.tutor@teacherpoint.com',
+    passwordHash: extraTutorHash,
+    role: 'teacher',
+    isVerified: true,
+    teacherProfile: {
+      subjects: ['English Literature', 'Spoken English'],
+      bio: 'Award-winning English tutor focused on confident communication.',
+      experience: 5,
+      hourlyRate: 28,
+      location: 'London, UK',
+      languages: ['English'],
+      gender: 'female',
+      verified: true,
+      online: false,
+      initials: 'ES',
+      gradient: 'from-sky-400 to-blue-600',
+      rating: 4.7,
+      reviewCount: 245,
+      availability: 'Weekdays',
+    },
+  },
+  {
+    name: 'David Lee',
+    email: 'david.tutor@teacherpoint.com',
+    passwordHash: extraTutorHash,
+    role: 'teacher',
+    isVerified: true,
+    teacherProfile: {
+      subjects: ['Spoken English', 'IELTS'],
+      bio: 'Confidence-first English coaching for global learners.',
+      experience: 4,
+      hourlyRate: 25,
+      location: 'online',
+      languages: ['English'],
+      gender: 'male',
+      verified: false,
+      online: true,
+      initials: 'DL',
+      gradient: 'from-teal-400 to-cyan-600',
+      rating: 4.6,
+      reviewCount: 134,
+      availability: 'Flexible',
+    },
+  },
+]);
+
 const studentHash = await bcrypt.hash('Student@123', env.BCRYPT_ROUNDS);
 const student = await User.create({
   name: 'Demo Student',
@@ -75,38 +172,25 @@ student.profileComplete = computeProfileComplete(student);
 await student.save();
 
 const cats = await Category.insertMany(
-  ['Development', 'AI & ML', 'Maths'].map((name, i) => ({
-    name,
-    slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-    icon: 'BookOpen',
-    sortOrder: i + 1,
+  CATEGORY_SEED.map((c) => ({
+    name: c.name,
+    slug: c.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+    icon: c.icon,
+    sortOrder: c.sortOrder,
     isActive: true,
+    subcategories: c.subcategories.map((name, i) => ({
+      subId: `${c.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-sub-${i + 1}`,
+      name,
+      slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+    })),
   })),
 );
 
-await Course.insertMany([
-  {
-    title: 'Class 10 Mathematics',
-    slug: 'class-10-mathematics',
-    instructorId: teacher._id,
-    instructorName: teacher.name,
-    categoryId: cats[2]._id,
-    category: 'Maths',
-    level: 'Beginner',
-    rating: 4.9,
-    reviewCount: 70,
-    price: 15,
-    duration: '24h',
-    lessons: 60,
-    students: 1200,
-    certificate: true,
-    language: 'English',
-    gradient: 'from-orange-500 to-red-500',
-    description: 'Board exam preparation.',
-    status: 'published',
-    createdBy: teacher._id,
-  },
-]);
+const catByName = Object.fromEntries(cats.map((c) => [c.name, c._id]));
+const courseRows = buildCourseSeed(catByName, teacher._id, teacher.name);
+await Course.insertMany(courseRows);
+console.log(`  Courses: ${courseRows.length} published with curriculum modules`);
+console.log(`  Categories: ${cats.length} with subcategories`);
 
 await Listing.insertMany([
   {
