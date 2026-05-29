@@ -23,16 +23,51 @@ await Promise.all([
   Banner.deleteMany(),
 ]);
 
-const adminHash = await bcrypt.hash('Admin@123', env.BCRYPT_ROUNDS);
-const admin = await User.create({
-  name: 'Super Admin',
+const adminAccounts = [
+  {
+    name: 'Aarav Mehta',
+    email: 'aarav@teacherpoint.com',
+    password: 'Aarav@Super2026',
+    staffRole: 'super_admin',
+  },
+  {
+    name: 'Priya Sharma',
+    email: 'priya.admin@teacherpoint.com',
+    password: 'Priya@Mgr2026',
+    staffRole: 'manager',
+  },
+  {
+    name: 'Omar Khalid',
+    email: 'omar@teacherpoint.com',
+    password: 'Omar@Mod2026',
+    staffRole: 'moderator',
+  },
+];
+
+for (const acct of adminAccounts) {
+  const passwordHash = await bcrypt.hash(acct.password, env.BCRYPT_ROUNDS);
+  const adminUser = await User.create({
+    name: acct.name,
+    email: acct.email,
+    passwordHash,
+    role: 'admin',
+    isVerified: true,
+    profileComplete: true,
+  });
+  await AdminMember.create({ userId: adminUser._id, staffRole: acct.staffRole, isActive: true });
+}
+
+// Legacy super-admin alias (same access as Aarav)
+const legacyHash = await bcrypt.hash('Admin@123', env.BCRYPT_ROUNDS);
+const legacyAdmin = await User.create({
+  name: 'Platform Admin',
   email: 'admin@teacherpoint.com',
-  passwordHash: adminHash,
+  passwordHash: legacyHash,
   role: 'admin',
   isVerified: true,
   profileComplete: true,
 });
-await AdminMember.create({ userId: admin._id, staffRole: 'super_admin', isActive: true });
+await AdminMember.create({ userId: legacyAdmin._id, staffRole: 'super_admin', isActive: true });
 
 const teacherHash = await bcrypt.hash('Teacher@123', env.BCRYPT_ROUNDS);
 const teacher = await User.create({
@@ -263,8 +298,11 @@ await Banner.insertMany([
 ]);
 
 console.log('Seed completed — test accounts:');
-console.log('  Admin:   admin@teacherpoint.com / Admin@123');
-console.log('  Tutor:   teacher@teacherpoint.com / Teacher@123');
-console.log('  Student: student@teacherpoint.com / Student@123');
+console.log('  Super Admin:  aarav@teacherpoint.com / Aarav@Super2026');
+console.log('  Manager:      priya.admin@teacherpoint.com / Priya@Mgr2026');
+console.log('  Moderator:    omar@teacherpoint.com / Omar@Mod2026');
+console.log('  Legacy admin: admin@teacherpoint.com / Admin@123');
+console.log('  Tutor:        teacher@teacherpoint.com / Teacher@123');
+console.log('  Student:      student@teacherpoint.com / Student@123');
 
 await mongoose.connection.close();

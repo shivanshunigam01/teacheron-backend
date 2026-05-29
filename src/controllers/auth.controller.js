@@ -18,6 +18,7 @@ import {
 import logger from '../config/logger.js';
 import { computeProfileComplete, initialsFromName } from '../utils/profileComplete.js';
 import { recordUserIpActivity } from '../services/ipMonitor.service.js';
+import { withStaffRole } from '../utils/adminStaff.js';
 
 const userId = (u) => (u._id ? String(u._id) : u.id);
 
@@ -26,8 +27,8 @@ const issue = (u) => ({
   refreshToken: tokenService.signRefresh(userId(u)),
 });
 
-const authPayload = (user, extra = {}) => ({
-  user: toJSON(user),
+const authPayload = async (user, extra = {}) => ({
+  user: await withStaffRole(user),
   ...issue(user),
   profileComplete: user.profileComplete,
   requiresEmailVerification: user.role === 'teacher' && !user.isVerified,
@@ -96,7 +97,7 @@ export const register = asyncHandler(async (req, res) => {
 
     return ApiResponse.created(
       res,
-      authPayload(user, payloadExtra),
+      await authPayload(user, payloadExtra),
       payloadExtra.verificationEmailSent
         ? 'Account created — check your email for a verification code'
         : 'Account created — verification email could not be sent',
@@ -123,7 +124,7 @@ export const register = asyncHandler(async (req, res) => {
     logger.error(`[welcome-email] ${welcomeEmailError}`);
   }
 
-  const payload = { ...authPayload(user), welcomeEmailSent };
+  const payload = { ...(await authPayload(user)), welcomeEmailSent };
   if (env.NODE_ENV === 'development' && welcomeEmailError) {
     payload.welcomeEmailError = welcomeEmailError;
   }
@@ -142,7 +143,7 @@ export const verifyEmail = asyncHandler(async (req, res) => {
     throw ApiError.badRequest('Email verification is only required for tutor accounts');
   }
   if (user.isVerified) {
-    return ApiResponse.ok(res, authPayload(user), 'Email already verified');
+    return ApiResponse.ok(res, await authPayload(user), 'Email already verified');
   }
 
   try {
@@ -154,7 +155,7 @@ export const verifyEmail = asyncHandler(async (req, res) => {
   const refreshed = await User.findById(user._id);
   ApiResponse.ok(
     res,
-    authPayload(refreshed),
+    await authPayload(refreshed),
     'Email verified — complete your tutor profile to continue',
   );
 });
@@ -195,7 +196,7 @@ export const login = asyncHandler(async (req, res) => {
     logger.error(`[ip-monitor] login: ${err.message}`);
   }
 
-  ApiResponse.ok(res, authPayload(user), 'Login successful');
+  ApiResponse.ok(res, await authPayload(user), 'Login successful');
 });
 
 export const refresh = asyncHandler(async (req, res) => {
@@ -214,7 +215,7 @@ export const logout = asyncHandler(async (req, res) => res.status(204).send());
 export const me = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user.id);
   if (!user) throw ApiError.notFound('User not found');
-  ApiResponse.ok(res, toJSON(user), 'Profile fetched');
+  ApiResponse.ok(res, await withStaffRole(user), 'Profile fetched');
 });
 
 export const updateProfile = asyncHandler(async (req, res) => {

@@ -33,9 +33,31 @@ export const stats = asyncHandler(async (req, res) => {
   );
 });
 
-export const team = asyncHandler(async (req, res) =>
-  ApiResponse.ok(res, toJSONList(await AdminMember.find().populate('userId')), 'Team fetched'),
-);
+export const team = asyncHandler(async (req, res) => {
+  const members = await AdminMember.find()
+    .populate('userId', 'name email isActive registrationIp lastLoginIp lastLoginAt ipRiskFlag')
+    .sort({ createdAt: 1 });
+
+  const data = members.map((m) => {
+    const row = toJSON(m);
+    const u = m.userId && typeof m.userId === 'object' ? toJSON(m.userId) : null;
+    return {
+      id: row.id,
+      userId: u?.id || (typeof row.userId === 'string' ? row.userId : ''),
+      staffRole: row.staffRole,
+      isActive: row.isActive !== false && u?.isActive !== false,
+      name: u?.name || '',
+      email: u?.email || '',
+      registrationIp: u?.registrationIp || '',
+      lastLoginIp: u?.lastLoginIp || '',
+      lastLoginAt: u?.lastLoginAt || null,
+      ipRiskFlag: !!u?.ipRiskFlag,
+      createdAt: row.createdAt,
+    };
+  });
+
+  ApiResponse.ok(res, data, 'Team fetched');
+});
 
 export const invite = asyncHandler(async (req, res) => {
   const item = await AdminMember.create({
