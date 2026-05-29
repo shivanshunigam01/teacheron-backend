@@ -23,6 +23,14 @@ export function errorHandler(err, req, res, _next) {
     message = 'Duplicate field';
     errors = [{ field: Object.keys(err.keyValue || {})[0], message: 'Already exists' }];
   }
+  if (err.name === 'TokenExpiredError') {
+    status = 401;
+    message = 'Session expired — please log in again';
+  }
+  if (err.name === 'JsonWebTokenError') {
+    status = 401;
+    message = message === 'Server error' ? 'Invalid session — please log in again' : message;
+  }
 
   res.status(status).json({ success: false, message, errors });
 }
