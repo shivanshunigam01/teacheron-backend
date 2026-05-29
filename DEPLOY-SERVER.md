@@ -174,6 +174,9 @@ SMTP_USER=your@gmail.com
 SMTP_PASS=your_gmail_app_password
 MAIL_FROM_NAME=TeachersPoints
 MAIL_FROM_EMAIL=your@gmail.com
+
+# Geo CMS — IP/location detection for country-wise banners (free key at geoapify.com)
+GEOAPIFY_API_KEY=your_geoapify_key
 ```
 
 Use a [Gmail App Password](https://support.google.com/accounts/answer/185833) (16 chars, no spaces). `MAIL_FROM_EMAIL` must match `SMTP_USER` for Gmail.

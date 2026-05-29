@@ -54,6 +54,14 @@ app.get('/health', async (req, res) => {
     db: dbState(),
     smtp,
     emailLinksBase: getEmailClientUrl(),
+    geo: {
+      configured: Boolean(env.geoapifyApiKey),
+      endpoints: ['GET /api/v1/geo/ip', 'GET /api/v1/geo/reverse'],
+    },
+    cms: {
+      banners: 'GET /api/v1/banners/active?country=&city=&countryCode=',
+      admin: 'GET/POST/PATCH/DELETE /api/v1/admin/banners',
+    },
     apiPrefix: API_PREFIX,
     authRoutes: [
       'POST /api/v1/auth/register',
