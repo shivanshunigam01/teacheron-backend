@@ -2,6 +2,7 @@ import Course from '../models/Course.model.js';
 import logger from '../config/logger.js';
 import { sendMail } from './email.service.js';
 import { buildWelcomeEmail } from '../templates/email/welcomeEmail.js';
+import { normalizeEmailAssetUrl } from '../templates/email/brand.js';
 
 const WELCOME_COURSE_LIMIT = 6;
 
@@ -27,7 +28,7 @@ export async function fetchPublishedCoursesForWelcome() {
       duration: c.duration,
       students: c.students,
       rating: c.rating,
-      imageUrl: c.imageUrl,
+      imageUrl: normalizeEmailAssetUrl(c.imageUrl),
     }));
   } catch (err) {
     logger.warn(`[welcome-email] Could not load courses: ${err.message}`);

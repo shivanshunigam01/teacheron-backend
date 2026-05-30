@@ -2,18 +2,41 @@ import { escapeHtml } from './escapeHtml.js';
 import { wrapEmail, emailButton } from './baseLayout.js';
 import { getVerifyEmailUrl } from './brand.js';
 
+const copy = {
+  teacher: {
+    headline: 'Verify your tutor email',
+    intro:
+      'Hi <strong>{name}</strong>, welcome to TeachersPoints! Enter this one-time code to verify your email and continue setting up your tutor profile.',
+    afterNote:
+      'After verification you will complete your tutor profile. Your welcome email with course highlights is sent once your profile is complete.',
+    textSubject: 'Verify your tutor email — TeachersPoints',
+    textAfter: 'Your welcome email will be sent once your profile is complete.',
+  },
+  student: {
+    headline: 'Verify your student email',
+    intro:
+      'Hi <strong>{name}</strong>, welcome to TeachersPoints! Enter this one-time code to verify your email and start exploring courses and tutors.',
+    afterNote:
+      'After verification you can complete your profile and browse courses. A welcome email with popular courses is sent once you verify.',
+    textSubject: 'Verify your student email — TeachersPoints',
+    textAfter: 'Your welcome email with course highlights is sent after you verify.',
+  },
+};
+
 /**
- * @param {{ name: string; email: string; otp: string }} params
+ * @param {{ name: string; otp: string; role?: 'student' | 'teacher' }} params
  */
-export function buildOtpEmail({ name, otp }) {
+export function buildOtpEmail({ name, otp, role = 'teacher' }) {
   const safeName = escapeHtml(name);
   const safeOtp = escapeHtml(otp);
   const minutes = 10;
+  const c = copy[role === 'student' ? 'student' : 'teacher'];
+  const introHtml = c.intro.replace('{name}', safeName);
 
   const bodyHtml = `
-    <h1 style="margin:0 0 12px;font-size:26px;font-weight:800;color:#0f172a;">Verify your tutor email</h1>
+    <h1 style="margin:0 0 12px;font-size:26px;font-weight:800;color:#0f172a;">${c.headline}</h1>
     <p style="margin:0 0 16px;font-size:17px;line-height:1.6;color:#334155;">
-      Hi <strong>${safeName}</strong>, welcome to TeachersPoints! Enter this one-time code to verify your email and continue setting up your tutor profile.
+      ${introHtml}
     </p>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;">
       <tr>
@@ -27,7 +50,7 @@ export function buildOtpEmail({ name, otp }) {
       This code expires in <strong>${minutes} minutes</strong>. Do not share it with anyone.
     </p>
     <p style="margin:16px 0 0;font-size:13px;line-height:1.6;color:#94a3b8;text-align:center;">
-      After verification you will complete your tutor profile. Your welcome email with course highlights is sent once your profile is complete.
+      ${c.afterNote}
     </p>
     ${emailButton(getVerifyEmailUrl(), 'Enter verification code')}
   `;
@@ -39,7 +62,7 @@ export function buildOtpEmail({ name, otp }) {
   });
 
   const text = [
-    'Verify your tutor email — TeachersPoints',
+    c.textSubject,
     '',
     `Hi ${name},`,
     '',
@@ -47,9 +70,8 @@ export function buildOtpEmail({ name, otp }) {
     '',
     `This code expires in ${minutes} minutes.`,
     '',
-    'After verification, complete your tutor profile in the app.',
+    c.textAfter,
     `Verify email: ${getVerifyEmailUrl()}`,
-    'Your welcome email will be sent once your profile is complete.',
     '',
     '— TeachersPoints',
   ].join('\n');

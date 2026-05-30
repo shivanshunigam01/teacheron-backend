@@ -22,10 +22,16 @@ export const refreshSchema = z.object({
   }),
 });
 
+export const forgotPasswordSchema = z.object({
+  body: z.object({
+    email: z.string().email(),
+  }),
+});
+
 export const resetSchema = z.object({
   body: z.object({
-    token: z.string(),
-    password: z.string().min(8),
+    token: z.string().min(32),
+    password: z.string().min(8).max(128),
   }),
 });
 

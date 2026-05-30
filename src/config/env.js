@@ -44,7 +44,7 @@ const env = {
   },
   clientUrl:
     process.env.CLIENT_URL ||
-    (process.env.NODE_ENV === 'production' ? 'https://teacherpoint.in' : 'http://localhost:5173'),
+    (process.env.NODE_ENV === 'production' ? 'https://www.teacherpoint.in' : 'http://localhost:5173'),
 };
 
 export default env;

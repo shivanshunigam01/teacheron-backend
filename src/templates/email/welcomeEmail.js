@@ -1,6 +1,6 @@
 import { escapeHtml } from './escapeHtml.js';
 import { wrapEmail, emailButton, emailButtonOutline, featureList, sectionHeading } from './baseLayout.js';
-import { getCourseDetailUrl, getCoursesCatalogUrl, getLoginUrl, getProfileUrl } from './brand.js';
+import { getCourseDetailUrl, getCoursesCatalogUrl, getLoginUrl, getProfileUrl, getTeacherDashboardUrl, normalizeEmailAssetUrl } from './brand.js';
 
 const PRIMARY = '#6366f1';
 const BORDER = '#e2e8f0';
@@ -76,7 +76,7 @@ function courseCard(course, btnLabel) {
     .join(' · ');
 
   const imageBlock = course.imageUrl
-    ? `<img src="${escapeHtml(course.imageUrl)}" alt="" width="88" height="88" class="course-img" style="display:block;width:88px;height:88px;object-fit:cover;border-radius:12px;border:1px solid ${BORDER};" />`
+    ? `<img src="${escapeHtml(normalizeEmailAssetUrl(course.imageUrl))}" alt="" width="88" height="88" class="course-img" style="display:block;width:88px;height:88px;object-fit:cover;border-radius:12px;border:1px solid ${BORDER};" />`
     : `<div style="width:88px;height:88px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#a855f7);border:1px solid ${BORDER};"></div>`;
 
   return `
@@ -113,7 +113,7 @@ function courseListSection(courses, heading, btnLabel) {
 export function buildWelcomeEmail({ name, email, role, courses = [] }) {
   const content = copy[role] ?? copy.student;
   const coursesUrl = getCoursesCatalogUrl();
-  const profileUrl = getProfileUrl();
+  const profileUrl = role === 'teacher' ? getTeacherDashboardUrl() : getProfileUrl();
   const loginUrl = getLoginUrl();
   const safeName = escapeHtml(name);
   const safeEmail = escapeHtml(email);

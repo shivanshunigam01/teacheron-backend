@@ -5,6 +5,7 @@ import { verifyJWT } from '../middleware/auth.middleware.js';
 import { authRateLimit } from '../middleware/rateLimit.middleware.js';
 import {
   registerSchema,
+  forgotPasswordSchema,
   loginSchema,
   refreshSchema,
   resetSchema,
@@ -31,7 +32,7 @@ r.post('/resend-verification', verifyJWT, authRateLimit, c.resendVerification);
 r.post('/login', authRateLimit, validate(loginSchema), c.login);
 r.post('/refresh', validate(refreshSchema), c.refresh);
 r.post('/logout', verifyJWT, c.logout);
-r.post('/forgot-password', c.forgotPassword);
+r.post('/forgot-password', authRateLimit, validate(forgotPasswordSchema), c.forgotPassword);
 r.post('/reset-password', validate(resetSchema), c.resetPassword);
 r.get('/me', verifyJWT, c.me);
 r.patch('/profile', verifyJWT, validate(updateProfileSchema), c.updateProfile);

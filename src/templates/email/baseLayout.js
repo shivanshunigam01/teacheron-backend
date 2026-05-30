@@ -104,26 +104,51 @@ export function wrapEmail({ preheader = '', title, bodyHtml }) {
 </html>`;
 }
 
-/** Primary gradient CTA */
+/** Primary CTA — solid bgcolor for Gmail/Outlook (gradients often hide button text). */
 export function emailButton(href, label) {
   const safeHref = escapeHtml(href);
   const safeLabel = escapeHtml(label);
+  const bg = PRIMARY;
   return `
-<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:24px 0 8px;">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0 8px;">
   <tr>
     <td align="center">
-      <a href="${safeHref}" class="btn" style="display:inline-block;background:linear-gradient(135deg,${PRIMARY} 0%,${ACCENT} 100%);color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;padding:15px 36px;border-radius:12px;box-shadow:0 8px 20px rgba(99,102,241,0.35);">${safeLabel}</a>
+      <!--[if mso]>
+      <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${safeHref}" style="height:48px;v-text-anchor:middle;width:300px;" arcsize="20%" stroke="f" fillcolor="${bg}">
+        <w:anchorlock/>
+        <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:16px;font-weight:bold;">${safeLabel}</center>
+      </v:roundrect>
+      <![endif]-->
+      <!--[if !mso]><!-->
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+        <tr>
+          <td align="center" bgcolor="${bg}" style="border-radius:12px;background-color:${bg};">
+            <a href="${safeHref}" target="_blank" rel="noopener noreferrer" class="btn" style="display:inline-block;padding:15px 36px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:16px;font-weight:700;line-height:1.25;color:#ffffff !important;text-decoration:none;border-radius:12px;background-color:${bg};border:1px solid ${PRIMARY_DARK};">
+              <span style="color:#ffffff !important;mso-line-height-rule:exactly;">${safeLabel}</span>
+            </a>
+          </td>
+        </tr>
+      </table>
+      <!--<![endif]-->
     </td>
   </tr>
 </table>`;
 }
 
-/** Outlined secondary CTA */
+/** Outlined secondary CTA — dark text on white for readability everywhere. */
 export function emailButtonOutline(href, label) {
   const safeHref = escapeHtml(href);
   const safeLabel = escapeHtml(label);
   return `
-<a href="${safeHref}" style="display:inline-block;border:2px solid ${PRIMARY};color:${PRIMARY};font-size:14px;font-weight:700;text-decoration:none;padding:10px 20px;border-radius:10px;">${safeLabel}</a>`;
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:4px 0 0;">
+  <tr>
+    <td align="left" bgcolor="#ffffff" style="border:2px solid ${PRIMARY};border-radius:10px;background-color:#ffffff;">
+      <a href="${safeHref}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:10px 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:14px;font-weight:700;line-height:1.25;color:${PRIMARY} !important;text-decoration:none;background-color:#ffffff;">
+        <span style="color:${PRIMARY} !important;">${safeLabel}</span>
+      </a>
+    </td>
+  </tr>
+</table>`;
 }
 
 export function featureList(items) {

@@ -89,6 +89,7 @@ export function mapTutorUser(user) {
   return {
     id: o._id?.toString?.() || o.id,
     name: o.name,
+    avatarUrl: o.avatarUrl || '',
     subject: subjects[0] || p.speciality || 'General',
     subjects,
     location: p.location || '',

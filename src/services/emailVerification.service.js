@@ -21,15 +21,16 @@ async function hashOtp(otp) {
 
 /**
  * @param {import('../models/User.model.js').default} user
+ * @param {string} [role] — defaults to user.role
  */
-export async function issueEmailVerificationOtp(user) {
+export async function issueEmailVerificationOtp(user, role = user.role) {
   const otp = generateOtpCode();
   user.emailVerificationOtpHash = await hashOtp(otp);
   user.emailVerificationExpires = new Date(Date.now() + OTP_TTL_MS);
   user.emailVerificationSentAt = new Date();
   await user.save();
 
-  const mail = buildOtpEmail({ name: user.name, otp });
+  const mail = buildOtpEmail({ name: user.name, otp, role });
   try {
     const result = await sendMail({
       to: user.email,
@@ -92,6 +93,28 @@ export async function resendEmailVerificationOtp(user) {
     throw new Error(`Please wait ${waitSec}s before requesting another code`);
   }
   return issueEmailVerificationOtp(user);
+}
+
+/**
+ * Send welcome email once when student email is verified.
+ * @param {import('../models/User.model.js').default} user
+ */
+export async function sendStudentWelcomeIfReady(user) {
+  if (user.role !== 'student' || !user.isVerified || user.welcomeEmailSent) {
+    return { sent: false, skipped: true };
+  }
+
+  try {
+    const result = await sendWelcomeEmail({ name: user.name, email: user.email, role: 'student' });
+    if (result.sent) {
+      user.welcomeEmailSent = true;
+      await user.save();
+    }
+    return result;
+  } catch (err) {
+    logger.error(`[welcome-email] student post-verify: ${err.message}`);
+    return { sent: false, error: err.message };
+  }
 }
 
 /**
