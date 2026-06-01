@@ -42,6 +42,9 @@ const env = {
     fromName: process.env.MAIL_FROM_NAME || 'TeachersPoints',
     fromEmail: process.env.MAIL_FROM_EMAIL || process.env.SMTP_USER || 'no-reply@teacherpoint.com',
   },
+  googleClientId: process.env.GOOGLE_CLIENT_ID?.trim() || '',
+  cloudinaryUrl: process.env.CLOUDINARY_URL?.trim() || '',
+  cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME?.trim() || '',
   clientUrl:
     process.env.CLIENT_URL ||
     (process.env.NODE_ENV === 'production' ? 'https://www.teacherpoint.in' : 'https://www.teacherpoint.in'),

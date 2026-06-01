@@ -7,9 +7,10 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { toJSON } from '../utils/serialize.js';
 import env from '../config/env.js';
 import * as tokenService from '../services/token.service.js';
-import { sendMail } from '../services/email.service.js';
-import { passwordResetEmail } from '../templates/email/passwordResetEmail.js';
-import { getResetPasswordUrl } from '../templates/email/brand.js';
+import {
+  sendPasswordResetEmail,
+  canSendPasswordReset,
+} from '../services/passwordResetEmail.service.js';
 import {
   issueEmailVerificationOtp,
   verifyEmailOtp,
@@ -21,6 +22,8 @@ import logger from '../config/logger.js';
 import { computeProfileComplete, initialsFromName } from '../utils/profileComplete.js';
 import { recordUserIpActivity } from '../services/ipMonitor.service.js';
 import { withStaffRole } from '../utils/adminStaff.js';
+import { verifyGoogleCredential } from '../services/googleAuth.service.js';
+import { findOrCreateGoogleUser } from '../services/googleAuthLogin.service.js';
 
 const userId = (u) => (u._id ? String(u._id) : u.id);
 
@@ -54,6 +57,7 @@ export const register = asyncHandler(async (req, res) => {
     name,
     email: email.toLowerCase(),
     passwordHash,
+    provider: 'local',
     role,
     isVerified: false,
     profileComplete: false,
@@ -165,7 +169,12 @@ export const resendVerification = asyncHandler(async (req, res) => {
 export const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
   const user = await User.findOne({ email: email.toLowerCase() }).select('+passwordHash');
-  if (!user?.passwordHash || !(await bcrypt.compare(password, user.passwordHash))) {
+  if (!user?.passwordHash) {
+    throw ApiError.unauthorized(
+      user ? 'This account uses Google sign-in. Continue with Google instead.' : 'Invalid email or password',
+    );
+  }
+  if (!(await bcrypt.compare(password, user.passwordHash))) {
     throw ApiError.unauthorized('Invalid email or password');
   }
   if (!user.isActive) throw ApiError.forbidden('Account is disabled');
@@ -180,6 +189,32 @@ export const login = asyncHandler(async (req, res) => {
   }
 
   ApiResponse.ok(res, await authPayload(user), 'Login successful');
+});
+
+export const googleLogin = asyncHandler(async (req, res) => {
+  const { credential, role } = req.body;
+
+  const googleUser = await verifyGoogleCredential(credential);
+
+  if (!googleUser.emailVerified) {
+    throw ApiError.badRequest('Google email must be verified before signing in');
+  }
+
+  const { user, isNewUser, welcomeEmailSent } = await findOrCreateGoogleUser(googleUser, { role });
+
+  try {
+    await recordUserIpActivity({ user, req, action: isNewUser ? 'register' : 'login' });
+  } catch (err) {
+    logger.error(`[google-auth] ip-monitor: ${err.message}`);
+  }
+
+  const extra = welcomeEmailSent ? { welcomeEmailSent: true } : {};
+
+  ApiResponse.ok(
+    res,
+    await authPayload(user, extra),
+    isNewUser ? 'Account created with Google' : 'Google sign-in successful',
+  );
 });
 
 export const refresh = asyncHandler(async (req, res) => {
@@ -255,37 +290,79 @@ export const updateProfile = asyncHandler(async (req, res) => {
 });
 
 export const forgotPassword = asyncHandler(async (req, res) => {
-  const user = await User.findOne({ email: req.body.email.toLowerCase() });
-  const responseData = { sent: true };
+  const requestedEmail = String(req.body?.email ?? '')
+    .trim()
+    .toLowerCase();
 
-  if (user) {
+  if (!requestedEmail) {
+    throw ApiError.badRequest('Email is required');
+  }
+
+  const user = await User.findOne({ email: requestedEmail }).select('+passwordHash');
+  const responseData = { sent: false, requestedEmail };
+
+  if (canSendPasswordReset(user)) {
+    if (user.email !== requestedEmail) {
+      logger.error('[forgot-password] email mismatch', {
+        requestedEmail,
+        userEmail: user.email,
+      });
+      throw ApiError.internal('Could not process password reset request');
+    }
+
     const resetToken = crypto.randomBytes(32).toString('hex');
     user.passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-    user.passwordResetExpires = Date.now() + 3600000;
+    user.passwordResetExpires = new Date(Date.now() + 3600000);
     await user.save();
 
     try {
-      const mailResult = await sendMail({
-        to: user.email,
-        subject: 'Reset your TeachersPoints password',
-        html: passwordResetEmail({ name: user.name, token: resetToken }),
-        text: `Reset your TeachersPoints password: ${getResetPasswordUrl(resetToken)}\n\nThis link expires in 1 hour.`,
+      const mailResult = await sendPasswordResetEmail({
+        to: requestedEmail,
+        name: user.name,
+        token: resetToken,
+        role: user.role,
+        setPassword: !user.passwordHash,
       });
-      if (env.NODE_ENV === 'development' && mailResult.stub) {
-        responseData.devResetToken = resetToken;
+      responseData.sent = mailResult.sent;
+      if (mailResult.deliveredTo) {
+        responseData.deliveredTo = mailResult.deliveredTo;
       }
-    } catch {
+      if (mailResult.devResetToken) {
+        responseData.devResetToken = mailResult.devResetToken;
+      }
+      if (!mailResult.sent) {
+        responseData.emailError =
+          mailResult.reason === 'not_configured'
+            ? 'SMTP is not configured on this server'
+            : 'Could not send password reset email';
+        logger.warn('[forgot-password] email not sent', {
+          requestedEmail,
+          reason: mailResult.reason,
+        });
+      }
+    } catch (err) {
       responseData.sent = false;
+      responseData.emailError = err.message;
       if (env.NODE_ENV === 'development') {
         responseData.devResetToken = resetToken;
       }
+      logger.error(`[forgot-password] send failed for ${requestedEmail}: ${err.message}`);
     }
+  } else {
+    logger.info('[forgot-password] no reset email sent', {
+      requestedEmail,
+      reason: user ? 'not_eligible' : 'not_found',
+    });
   }
 
   ApiResponse.ok(
     res,
     responseData,
-    'If an account exists for that email, password reset instructions have been sent',
+    responseData.sent && responseData.deliveredTo
+      ? `Password reset instructions sent to ${responseData.deliveredTo}`
+      : responseData.sent
+        ? 'If an account exists for that email, password reset instructions have been sent'
+        : 'Password reset email could not be sent. Try again later or contact support.',
   );
 });
 
@@ -295,10 +372,34 @@ export const resetPassword = asyncHandler(async (req, res) => {
     passwordResetToken: tokenHash,
     passwordResetExpires: { $gt: new Date() },
   });
-  if (!user) throw ApiError.badRequest('Invalid or expired token');
+  if (!user || !['student', 'teacher'].includes(user.role)) {
+    throw ApiError.badRequest('Invalid or expired token');
+  }
   user.passwordHash = await bcrypt.hash(req.body.password, env.BCRYPT_ROUNDS);
   user.passwordResetToken = undefined;
   user.passwordResetExpires = undefined;
   await user.save();
   ApiResponse.ok(res, { message: 'Password reset successful' }, 'Password reset successful');
+});
+
+export const changePassword = asyncHandler(async (req, res) => {
+  if (!['student', 'teacher'].includes(req.user.role)) {
+    throw ApiError.forbidden('Password change is only available for student and tutor accounts');
+  }
+
+  const user = await User.findById(req.user.id).select('+passwordHash');
+  if (!user) throw ApiError.notFound('User not found');
+  if (!user.passwordHash) {
+    throw ApiError.badRequest('This account uses Google sign-in and has no password to change');
+  }
+
+  const valid = await bcrypt.compare(req.body.currentPassword, user.passwordHash);
+  if (!valid) throw ApiError.badRequest('Current password is incorrect');
+
+  user.passwordHash = await bcrypt.hash(req.body.password, env.BCRYPT_ROUNDS);
+  user.passwordResetToken = undefined;
+  user.passwordResetExpires = undefined;
+  await user.save();
+
+  ApiResponse.ok(res, { message: 'Password updated' }, 'Password updated successfully');
 });

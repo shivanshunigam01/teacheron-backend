@@ -35,6 +35,20 @@ export const resetSchema = z.object({
   }),
 });
 
+export const changePasswordSchema = z.object({
+  body: z.object({
+    currentPassword: z.string().min(1),
+    password: z.string().min(8).max(128),
+  }),
+});
+
+export const googleLoginSchema = z.object({
+  body: z.object({
+    credential: z.string().min(10),
+    role: z.enum(['student', 'teacher']).optional(),
+  }),
+});
+
 const teachingSubjectSchema = z.object({
   name: z.string().min(1).max(100),
   fromLevel: z.string().min(1).max(100),

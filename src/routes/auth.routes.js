@@ -9,6 +9,8 @@ import {
   loginSchema,
   refreshSchema,
   resetSchema,
+  changePasswordSchema,
+  googleLoginSchema,
   updateProfileSchema,
   verifyEmailSchema,
 } from '../validators/auth.validator.js';
@@ -22,6 +24,7 @@ if (process.env.AUTH_ROUTE_DEBUG === 'true') {
   console.log('[TeacherPoint API] Auth routes mounted:', {
     register: 'POST /auth/register',
     login: 'POST /auth/login',
+    googleLogin: 'POST /auth/google-login',
     me: 'GET /auth/me',
   });
 }
@@ -30,10 +33,12 @@ r.post('/register', validate(registerSchema), c.register);
 r.post('/verify-email', verifyJWT, authRateLimit, validate(verifyEmailSchema), c.verifyEmail);
 r.post('/resend-verification', verifyJWT, authRateLimit, c.resendVerification);
 r.post('/login', authRateLimit, validate(loginSchema), c.login);
+r.post('/google-login', authRateLimit, validate(googleLoginSchema), c.googleLogin);
 r.post('/refresh', validate(refreshSchema), c.refresh);
 r.post('/logout', verifyJWT, c.logout);
 r.post('/forgot-password', authRateLimit, validate(forgotPasswordSchema), c.forgotPassword);
 r.post('/reset-password', validate(resetSchema), c.resetPassword);
+r.post('/change-password', verifyJWT, authRateLimit, validate(changePasswordSchema), c.changePassword);
 r.get('/me', verifyJWT, c.me);
 r.patch('/profile', verifyJWT, validate(updateProfileSchema), c.updateProfile);
 

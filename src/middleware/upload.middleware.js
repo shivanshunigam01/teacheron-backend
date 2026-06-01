@@ -27,11 +27,22 @@ function isAllowedMedia(mimetype) {
   return false;
 }
 
+const useCloudinary = Boolean(process.env.CLOUDINARY_URL?.trim());
+
 export const upload = multer({
-  storage,
+  storage: useCloudinary ? multer.memoryStorage() : storage,
   limits: { fileSize: env.maxFileSizeMb * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (isAllowedMedia(file.mimetype)) cb(null, true);
     else cb(new Error('Unsupported file type. Use images, PDF, or mp4/webm video.'));
+  },
+});
+
+export const uploadImageOnly = multer({
+  storage: useCloudinary ? multer.memoryStorage() : storage,
+  limits: { fileSize: Math.min(env.maxFileSizeMb, 10) * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) cb(null, true);
+    else cb(new Error('Only image files are allowed for profile photos.'));
   },
 });

@@ -75,7 +75,8 @@ const teacher = await User.create({
   email: 'teacher@teacherpoint.com',
   passwordHash: teacherHash,
   role: 'teacher',
-  phone: '+1 555 010 0001',
+  phone: '555 010 0001',
+  phoneCountryCode: '+1',
   isVerified: true,
   teacherProfile: {
     subjects: ['Mathematics', 'Physics'],
@@ -288,7 +289,7 @@ await Banner.insertMany([
     ctaText: 'Start learning',
     ctaLink: '/courses',
     mediaType: 'video',
-    videoUrl: 'https://cdn.coverr.co/videos/coverr-typing-on-a-laptop-1583/1080p.mp4',
+    videoUrl: '/videos/courses-hero.mp4',
     placement: 'inline-banner',
     targetType: 'global',
     targetValue: '',
