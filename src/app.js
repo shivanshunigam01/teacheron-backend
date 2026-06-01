@@ -68,9 +68,16 @@ app.get('/health', async (req, res) => {
       'POST /api/v1/auth/verify-email',
       'POST /api/v1/auth/resend-verification',
       'POST /api/v1/auth/login',
+      'POST /api/v1/auth/google-login',
       'GET /api/v1/auth/me',
       'PATCH /api/v1/auth/profile',
     ],
+    googleAuth: {
+      configured: Boolean(env.googleClientId),
+      hint: env.googleClientId
+        ? 'Set matching VITE_GOOGLE_CLIENT_ID on frontend build (Vercel)'
+        : 'Set GOOGLE_CLIENT_ID in backend .env',
+    },
     welcomeEmail: 'Sent on student/teacher signup when SMTP is configured',
   });
 });

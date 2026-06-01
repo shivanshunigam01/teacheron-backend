@@ -177,9 +177,14 @@ MAIL_FROM_EMAIL=your@gmail.com
 
 # Geo CMS — IP/location detection for country-wise banners (free key at geoapify.com)
 GEOAPIFY_API_KEY=your_geoapify_key
+
+# Google Sign-In — same Web client ID as Vercel VITE_GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_ID=your-google-web-client-id.apps.googleusercontent.com
 ```
 
 Use a [Gmail App Password](https://support.google.com/accounts/answer/185833) (16 chars, no spaces). `MAIL_FROM_EMAIL` must match `SMTP_USER` for Gmail.
+
+**Google login:** Backend `GOOGLE_CLIENT_ID` verifies tokens from the browser. The frontend must be built with the matching `VITE_GOOGLE_CLIENT_ID` on Vercel. In Google Cloud Console, add `https://www.teacherpoint.in` under **Authorized JavaScript origins**. Check: `curl -s https://api.teacherpoint.in/health` should show `"googleAuth":{"configured":true,...}`.
 
 After editing `.env`:
 
