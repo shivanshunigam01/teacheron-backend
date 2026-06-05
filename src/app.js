@@ -16,6 +16,7 @@ import { corsMiddleware, corsOptions } from './middleware/cors.middleware.js';
 import { notFound, errorHandler } from './middleware/error.middleware.js';
 import { dbState } from './config/db.js';
 import { getSmtpStatus } from './services/smtpConfig.service.js';
+import { getGoogleAuthStatus } from './services/googleAuth.service.js';
 import { getEmailClientUrl } from './templates/email/brand.js';
 
 const app = express();
@@ -72,12 +73,7 @@ app.get('/health', async (req, res) => {
       'GET /api/v1/auth/me',
       'PATCH /api/v1/auth/profile',
     ],
-    googleAuth: {
-      configured: Boolean(env.googleClientId),
-      hint: env.googleClientId
-        ? 'Set matching VITE_GOOGLE_CLIENT_ID on frontend build (Vercel)'
-        : 'Set GOOGLE_CLIENT_ID in backend .env',
-    },
+    googleAuth: getGoogleAuthStatus(),
     welcomeEmail: 'Sent on student/teacher signup when SMTP is configured',
   });
 });

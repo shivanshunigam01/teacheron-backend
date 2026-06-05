@@ -179,7 +179,7 @@ MAIL_FROM_EMAIL=your@gmail.com
 GEOAPIFY_API_KEY=your_geoapify_key
 
 # Google Sign-In — same Web client ID as Vercel VITE_GOOGLE_CLIENT_ID
-GOOGLE_CLIENT_ID=your-google-web-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_ID=127339398195-5gghcqf84esnl3gj8ld6r90qu5dc10a0.apps.googleusercontent.com
 ```
 
 Use a [Gmail App Password](https://support.google.com/accounts/answer/185833) (16 chars, no spaces). `MAIL_FROM_EMAIL` must match `SMTP_USER` for Gmail.
