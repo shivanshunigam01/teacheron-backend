@@ -14,7 +14,7 @@ function maskClientId(id) {
 function getOAuthClient() {
   if (!env.googleClientId) {
     logger.error('[google-auth] GOOGLE_CLIENT_ID is missing — set it in backend .env');
-    throw ApiError.internal('Google sign-in is not configured. Set GOOGLE_CLIENT_ID in .env');
+    throw new ApiError(500, 'Google sign-in is not configured. Set GOOGLE_CLIENT_ID in .env');
   }
   if (!client) {
     client = new OAuth2Client(env.googleClientId);
@@ -36,7 +36,7 @@ export async function verifyGoogleCredential(credential) {
 
   if (!env.googleClientId) {
     logger.error('[google-auth] GOOGLE_CLIENT_ID is not configured');
-    throw ApiError.internal('Google sign-in is not configured. Set GOOGLE_CLIENT_ID in .env');
+    throw new ApiError(500, 'Google sign-in is not configured. Set GOOGLE_CLIENT_ID in .env');
   }
 
   let payload;

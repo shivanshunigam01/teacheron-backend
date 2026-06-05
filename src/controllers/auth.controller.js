@@ -22,7 +22,7 @@ import logger from '../config/logger.js';
 import { computeProfileComplete, initialsFromName } from '../utils/profileComplete.js';
 import { recordUserIpActivity } from '../services/ipMonitor.service.js';
 import { withStaffRole } from '../utils/adminStaff.js';
-import { verifyGoogleCredential } from '../services/googleAuth.service.js';
+import { OAuth2Client } from 'google-auth-library';
 import { findOrCreateGoogleUser } from '../services/googleAuthLogin.service.js';
 
 const userId = (u) => (u._id ? String(u._id) : u.id);
@@ -191,31 +191,101 @@ export const login = asyncHandler(async (req, res) => {
   ApiResponse.ok(res, await authPayload(user), 'Login successful');
 });
 
-export const googleLogin = asyncHandler(async (req, res) => {
-  const { credential, role } = req.body;
-
-  const googleUser = await verifyGoogleCredential(credential);
-
-  if (!googleUser.emailVerified) {
-    throw ApiError.badRequest('Google email must be verified before signing in');
-  }
-
-  const { user, isNewUser, welcomeEmailSent } = await findOrCreateGoogleUser(googleUser, { role });
-
+export const googleLogin = async (req, res) => {
   try {
-    await recordUserIpActivity({ user, req, action: isNewUser ? 'register' : 'login' });
-  } catch (err) {
-    logger.error(`[google-auth] ip-monitor: ${err.message}`);
+    const { credential, role } = req.body;
+
+    console.log('GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID);
+    console.log('Credential Exists:', !!credential);
+    console.log('Credential Length:', credential?.length);
+
+    if (!process.env.GOOGLE_CLIENT_ID?.trim()) {
+      return res.status(500).json({
+        success: false,
+        message: 'Google sign-in is not configured. Set GOOGLE_CLIENT_ID in .env',
+        errors: [],
+      });
+    }
+
+    const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID.trim());
+
+    let payload;
+    try {
+      const ticket = await googleClient.verifyIdToken({
+        idToken: credential,
+        audience: process.env.GOOGLE_CLIENT_ID.trim(),
+      });
+      payload = ticket.getPayload();
+    } catch (verifyError) {
+      console.error('Google Verify Error:', verifyError);
+
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid or expired Google token',
+        errors: [],
+      });
+    }
+
+    const email = payload?.email?.toLowerCase();
+    const sub = payload?.sub;
+
+    if (!email || !sub) {
+      return res.status(400).json({
+        success: false,
+        message: 'Google token is missing required profile fields (email, sub)',
+        errors: [],
+      });
+    }
+
+    const googleUser = {
+      googleId: sub,
+      email,
+      name: payload.name?.trim() || email.split('@')[0],
+      picture: payload.picture || '',
+      emailVerified: payload.email_verified === true,
+    };
+
+    if (!googleUser.emailVerified) {
+      return res.status(400).json({
+        success: false,
+        message: 'Google email must be verified before signing in',
+        errors: [],
+      });
+    }
+
+    const { user, isNewUser, welcomeEmailSent } = await findOrCreateGoogleUser(googleUser, { role });
+
+    try {
+      await recordUserIpActivity({ user, req, action: isNewUser ? 'register' : 'login' });
+    } catch (err) {
+      logger.error(`[google-auth] ip-monitor: ${err.message}`);
+    }
+
+    const extra = welcomeEmailSent ? { welcomeEmailSent: true } : {};
+
+    return ApiResponse.ok(
+      res,
+      await authPayload(user, extra),
+      isNewUser ? 'Account created with Google' : 'Google sign-in successful',
+    );
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+        errors: error.errors || [],
+      });
+    }
+
+    console.error('Google Login Error:', error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Google login failed',
+      errors: [],
+    });
   }
-
-  const extra = welcomeEmailSent ? { welcomeEmailSent: true } : {};
-
-  ApiResponse.ok(
-    res,
-    await authPayload(user, extra),
-    isNewUser ? 'Account created with Google' : 'Google sign-in successful',
-  );
-});
+};
 
 export const refresh = asyncHandler(async (req, res) => {
   const p = tokenService.verifyRefresh(req.body.refreshToken);
