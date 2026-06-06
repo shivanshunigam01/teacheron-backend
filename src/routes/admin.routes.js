@@ -14,6 +14,17 @@ import {
   workshopIdParamSchema,
   workshopListQuerySchema,
 } from '../validators/workshop.validator.js';
+import * as tutorAdmin from '../controllers/tutor.controller.js';
+import {
+  adminTeacherListQuerySchema,
+  adminTeacherStatusSchema,
+} from '../validators/teacher.validator.js';
+import * as requirement from '../controllers/requirement.controller.js';
+import {
+  adminApproveRequirementSchema,
+  adminListRequirementsQuerySchema,
+  adminRejectRequirementSchema,
+} from '../validators/requirement.validator.js';
 
 const r = Router();
 r.use(verifyJWT, requireRole('admin'));
@@ -47,5 +58,12 @@ r.get('/workshops/:id', validate(workshopIdParamSchema), workshop.adminGetById);
 r.patch('/workshops/:id/approve', validate(workshopIdParamSchema), workshop.adminApprove);
 r.patch('/workshops/:id/reject', validate(workshopRejectSchema), workshop.adminReject);
 r.patch('/workshops/:id/status', validate(workshopStatusSchema), workshop.adminUpdateStatus);
+
+r.get('/teachers', validate(adminTeacherListQuerySchema), tutorAdmin.listTeachersAdmin);
+r.patch('/teachers/:id/status', validate(adminTeacherStatusSchema), tutorAdmin.updateTeacherStatus);
+
+r.get('/requirements', validate(adminListRequirementsQuerySchema), requirement.adminList);
+r.patch('/requirements/:id/approve', validate(adminApproveRequirementSchema), requirement.adminApprove);
+r.patch('/requirements/:id/reject', validate(adminRejectRequirementSchema), requirement.adminReject);
 
 export default r;

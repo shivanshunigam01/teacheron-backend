@@ -1,4 +1,57 @@
 import mongoose from 'mongoose';
-const {Schema}=mongoose;
-const requirementSchema=new Schema({studentId:{type:Schema.Types.ObjectId,ref:'User'},title:{type:String,required:true},subject:String,level:{type:String,enum:['elem','middle','high','college','pro']},mode:{type:String,enum:['online','offline','both']},sessionsPerWeek:Number,location:String,budgetPerHour:Number,duration:{type:String,enum:['once','month','semester','ongoing']},details:{type:String,required:true},status:{type:String,enum:['open','matched','closed','cancelled'],default:'open'},approved:{type:Boolean,default:false}},{timestamps:true});
-export default mongoose.model('Requirement',requirementSchema);
+
+const { Schema } = mongoose;
+
+const requirementSchema = new Schema(
+  {
+    studentId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    studentName: { type: String, trim: true },
+    studentEmail: { type: String, trim: true, lowercase: true },
+    title: { type: String, required: true, trim: true },
+    subject: { type: String, required: true, trim: true },
+    skills: [{ type: String, trim: true }],
+    level: {
+      type: String,
+      enum: ['elem', 'middle', 'high', 'college', 'pro'],
+      default: 'high',
+    },
+    jobType: {
+      type: String,
+      enum: ['tutoring', 'assignment'],
+      default: 'tutoring',
+    },
+    mode: {
+      type: String,
+      enum: ['online', 'offline', 'both'],
+      default: 'online',
+    },
+    sessionsPerWeek: Number,
+    location: String,
+    city: String,
+    country: String,
+    budgetPerHour: Number,
+    currency: { type: String, default: 'USD' },
+    duration: {
+      type: String,
+      enum: ['once', 'month', 'semester', 'ongoing'],
+      default: 'ongoing',
+    },
+    details: { type: String, required: true, trim: true },
+    status: {
+      type: String,
+      enum: ['pending', 'open', 'rejected', 'matched', 'closed', 'cancelled'],
+      default: 'pending',
+      index: true,
+    },
+    approved: { type: Boolean, default: false, index: true },
+    adminRemark: { type: String, default: '' },
+    approvedAt: Date,
+    rejectedAt: Date,
+  },
+  { timestamps: true },
+);
+
+requirementSchema.index({ subject: 1, approved: 1, status: 1 });
+requirementSchema.index({ city: 1, country: 1 });
+
+export default mongoose.model('Requirement', requirementSchema);

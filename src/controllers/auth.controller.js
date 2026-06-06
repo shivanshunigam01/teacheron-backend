@@ -69,7 +69,15 @@ export const register = asyncHandler(async (req, res) => {
             gradient: 'from-blue-500 to-purple-500',
             verified: false,
             online: true,
+            onlineTeaching: false,
+            homeTuition: false,
+            groupClasses: false,
+            assignmentHelp: false,
+            profileCompleted: false,
             subjects: [],
+            teachingSubjects: [],
+            education: [],
+            experienceEntries: [],
           }
         : undefined,
     studentProfile: role === 'student' ? {} : undefined,
@@ -324,15 +332,19 @@ export const updateProfile = asyncHandler(async (req, res) => {
   if (locale) user.locale = locale;
 
   if (user.role === 'teacher' && teacherProfile) {
-    const merged = {
-      ...(user.teacherProfile?.toObject?.() || user.teacherProfile || {}),
-      ...teacherProfile,
-      initials: user.teacherProfile?.initials || initialsFromName(user.name),
-    };
-    if (teacherProfile.teachingSubjects?.length) {
-      merged.subjects = teacherProfile.teachingSubjects.map((entry) => entry.name);
-    }
-    user.teacherProfile = merged;
+    const { upsertTeacherProfile } = await import('../services/teacher.service.js');
+    const { user: updated, welcomeEmailSent } = await upsertTeacherProfile(user, {
+      name,
+      phone,
+      phoneCountryCode,
+      avatarUrl,
+      teacherProfile,
+    });
+    return ApiResponse.ok(
+      res,
+      { ...toJSON(updated), welcomeEmailSent, requiresEmailVerification: false },
+      welcomeEmailSent ? 'Profile complete — welcome email sent' : 'Profile updated',
+    );
   }
 
   if (user.role === 'student' && studentProfile) {
@@ -344,6 +356,9 @@ export const updateProfile = asyncHandler(async (req, res) => {
 
   const wasComplete = user.profileComplete;
   user.profileComplete = computeProfileComplete(user);
+  if (user.role === 'teacher' && user.teacherProfile) {
+    user.teacherProfile.profileCompleted = user.profileComplete;
+  }
   await user.save();
 
   let welcomeEmailSent = false;

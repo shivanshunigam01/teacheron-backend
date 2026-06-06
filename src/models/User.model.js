@@ -13,6 +13,28 @@ const teachingSubjectSchema = new Schema(
   { _id: false },
 );
 
+const educationEntrySchema = new Schema(
+  {
+    degree: { type: String, trim: true },
+    institute: { type: String, trim: true },
+    startDate: Date,
+    endDate: Date,
+    description: { type: String, trim: true },
+  },
+  { _id: false },
+);
+
+const experienceEntrySchema = new Schema(
+  {
+    title: { type: String, trim: true },
+    organization: { type: String, trim: true },
+    startDate: Date,
+    endDate: Date,
+    description: { type: String, trim: true },
+  },
+  { _id: false },
+);
+
 const userSchema = new Schema(
   {
     name: { type: String, required: true, trim: true },
@@ -30,22 +52,40 @@ const userSchema = new Schema(
     isActive: { type: Boolean, default: true },
     profileComplete: { type: Boolean, default: false },
     teacherProfile: {
-      teacherType: { type: String, enum: ['individual', 'company'] },
+      profilePhoto: String,
+      teacherType: {
+        type: String,
+        enum: ['individual', 'coaching_institute', 'school', 'college', 'freelancer', 'company'],
+      },
       speciality: String,
-      birthDate: Date,
-      subjects: [String],
-      teachingSubjects: [teachingSubjectSchema],
       bio: String,
+      gender: { type: String, enum: ['male', 'female', 'other'] },
+      birthDate: Date,
+      country: String,
+      state: String,
+      city: String,
+      locality: String,
+      publicLocation: String,
+      location: String,
+      yearsOfExperience: Number,
       experience: Number,
       hourlyRate: Number,
       currency: { type: String, default: 'USD' },
-      location: String,
       languages: [String],
-      gender: { type: String, enum: ['male', 'female', 'other'] },
+      availability: String,
+      onlineTeaching: { type: Boolean, default: false },
+      homeTuition: { type: Boolean, default: false },
+      groupClasses: { type: Boolean, default: false },
+      assignmentHelp: { type: Boolean, default: false },
+      teachingStyle: String,
+      profileCompleted: { type: Boolean, default: false },
+      subjects: [String],
+      teachingSubjects: [teachingSubjectSchema],
+      education: [educationEntrySchema],
+      experiences: [experienceEntrySchema],
       verified: { type: Boolean, default: false },
       topTen: { type: Boolean, default: false },
       online: { type: Boolean, default: true },
-      availability: String,
       initials: String,
       gradient: String,
       rating: { type: Number, default: 0 },
@@ -74,6 +114,8 @@ const userSchema = new Schema(
 );
 
 userSchema.index({ name: 'text', email: 'text', 'teacherProfile.subjects': 'text' });
+userSchema.index({ role: 1, isActive: 1, profileComplete: 1 });
+userSchema.index({ 'teacherProfile.country': 1, 'teacherProfile.city': 1 });
 userSchema.index({ registrationIp: 1 });
 userSchema.index({ lastLoginIp: 1 });
 userSchema.index({ ipRiskFlag: 1 });

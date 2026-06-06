@@ -55,8 +55,44 @@ const teachingSubjectSchema = z.object({
   toLevel: z.string().min(1).max(100),
 });
 
+const educationSchema = z.object({
+  id: z.string().optional(),
+  degree: z.string().min(1).max(200),
+  institute: z.string().min(1).max(200),
+  startDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .or(z.literal('')),
+  endDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .or(z.literal('')),
+  description: z.string().max(2000).optional(),
+});
+
+const experienceEntrySchema = z.object({
+  id: z.string().optional(),
+  title: z.string().min(1).max(200),
+  organization: z.string().min(1).max(200),
+  startDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .or(z.literal('')),
+  endDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .or(z.literal('')),
+  description: z.string().max(2000).optional(),
+});
+
 const teacherProfileSchema = z.object({
-  teacherType: z.enum(['individual', 'company']).optional(),
+  teacherType: z
+    .enum(['individual', 'coaching_institute', 'school', 'college', 'freelancer', 'company'])
+    .optional(),
   speciality: z.string().min(1).max(200).optional(),
   birthDate: z
     .string()
@@ -65,13 +101,26 @@ const teacherProfileSchema = z.object({
     .or(z.literal('')),
   subjects: z.array(z.string().min(1)).min(1).optional(),
   teachingSubjects: z.array(teachingSubjectSchema).min(1).optional(),
-  bio: z.string().min(10).max(2000).optional(),
+  bio: z.string().min(150).max(3000).optional(),
   experience: z.number().min(0).max(60).optional(),
+  yearsOfExperience: z.number().min(0).max(60).optional(),
   hourlyRate: z.number().min(0).max(10000).optional(),
   location: z.string().min(2).max(200).optional(),
+  country: z.string().max(100).optional(),
+  state: z.string().max(100).optional(),
+  city: z.string().max(100).optional(),
+  locality: z.string().max(200).optional(),
+  publicLocation: z.string().max(300).optional(),
   languages: z.array(z.string()).optional(),
   gender: z.enum(['male', 'female', 'other']).optional(),
   availability: z.string().max(200).optional(),
+  onlineTeaching: z.boolean().optional(),
+  homeTuition: z.boolean().optional(),
+  groupClasses: z.boolean().optional(),
+  assignmentHelp: z.boolean().optional(),
+  teachingStyle: z.string().max(3000).optional(),
+  education: z.array(educationSchema).optional(),
+  experienceEntries: z.array(experienceEntrySchema).optional(),
 });
 
 const studentProfileSchema = z.object({

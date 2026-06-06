@@ -15,8 +15,12 @@ export const list=asyncHandler(async(req,res)=>{const {page,limit,skip,sort}=get
 export const getById=asyncHandler(async(req,res)=>{const user=await User.findById(req.params.id);if(!user)throw ApiError.notFound('User not found');ApiResponse.ok(res,toJSON(user),'User fetched');});
 export const update=asyncHandler(async(req,res)=>{if(req.user.role!=='admin'&&req.user.id!==req.params.id)throw ApiError.forbidden();const {role,email,passwordHash,googleId,...safe}=req.body;const user=await User.findByIdAndUpdate(req.params.id,safe,{new:true,runValidators:true});ApiResponse.ok(res,toJSON(user),'User updated');});
 export const tutorsFacets = asyncHandler(async (req, res) => {
-  const teachers = await User.find({ role: 'teacher', isActive: { $ne: false } }).select(
-    'teacherProfile.subjects teacherProfile.location teacherProfile.languages teacherProfile.online',
+  const teachers = await User.find({
+    role: 'teacher',
+    isActive: { $ne: false },
+    $or: [{ 'teacherProfile.profileCompleted': true }, { profileComplete: true }],
+  }).select(
+    'teacherProfile.subjects teacherProfile.location teacherProfile.languages teacherProfile.online teacherProfile.country teacherProfile.city',
   );
   const subjects = new Set();
   const languages = new Set();
@@ -41,7 +45,7 @@ export const tutors = asyncHandler(async (req, res) => {
   const page = Math.max(1, parseInt(req.query.page, 10) || 1);
   const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 24));
   const skip = (page - 1) * limit;
-  const filter = buildTutorFilter(req.query);
+  const filter = buildTutorFilter(req.query, { publicOnly: true });
   const sort = buildTutorSort(req.query.sortBy);
   const [items, total] = await Promise.all([
     User.find(filter).sort(sort).skip(skip).limit(limit),
@@ -55,9 +59,14 @@ export const tutors = asyncHandler(async (req, res) => {
 });
 
 export const tutorDetail = asyncHandler(async (req, res) => {
-  const u = await User.findOne({ _id: req.params.id, role: 'teacher', isActive: { $ne: false } });
+  const u = await User.findOne({
+    _id: req.params.id,
+    role: 'teacher',
+    isActive: { $ne: false },
+    $or: [{ 'teacherProfile.profileCompleted': true }, { profileComplete: true }],
+  });
   if (!u) throw ApiError.notFound('Tutor not found');
-  ApiResponse.ok(res, mapTutorUser(u), 'Tutor fetched');
+  ApiResponse.ok(res, mapTutorUser(u, { detailed: true }), 'Tutor fetched');
 });
 
 export const requestTutorPhone = asyncHandler(async (req, res) => {
