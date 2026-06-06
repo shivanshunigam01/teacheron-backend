@@ -1,6 +1,10 @@
 import nodemailer from 'nodemailer';
 import logger from '../config/logger.js';
 import { getSmtpSettings, invalidateSmtpCache } from './smtpConfig.service.js';
+import {
+  BRAND_LOGO_CID,
+  getBrandLogoAttachment,
+} from '../templates/email/brand.js';
 
 let cachedTransport = null;
 let cachedTransportKey = '';
@@ -91,12 +95,18 @@ export async function sendMail({ to, subject, html, text }) {
   }
 
   try {
+    const attachments = [];
+    if (html?.includes(BRAND_LOGO_CID)) {
+      attachments.push(getBrandLogoAttachment());
+    }
+
     const info = await transport.sendMail({
       from: `"${settings.fromName}" <${settings.fromEmail}>`,
       to,
       subject,
       html,
       text: text || undefined,
+      attachments,
     });
     logger.info(`[MAIL SENT] to=${to} id=${info.messageId}`);
     return { stub: false, messageId: info.messageId };

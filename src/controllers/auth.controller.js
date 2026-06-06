@@ -195,25 +195,25 @@ export const googleLogin = async (req, res) => {
   try {
     const { credential, role } = req.body;
 
-    console.log('GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID);
+    console.log('GOOGLE_CLIENT_ID:', env.googleClientId || '(not set)');
     console.log('Credential Exists:', !!credential);
     console.log('Credential Length:', credential?.length);
 
-    if (!process.env.GOOGLE_CLIENT_ID?.trim()) {
+    if (!env.googleClientId) {
       return res.status(500).json({
         success: false,
-        message: 'Google sign-in is not configured. Set GOOGLE_CLIENT_ID in .env',
+        message: 'Google sign-in is not configured. Set GOOGLE_CLIENT_ID in backend .env and restart the server',
         errors: [],
       });
     }
 
-    const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID.trim());
+    const googleClient = new OAuth2Client(env.googleClientId);
 
     let payload;
     try {
       const ticket = await googleClient.verifyIdToken({
         idToken: credential,
-        audience: process.env.GOOGLE_CLIENT_ID.trim(),
+        audience: env.googleClientId,
       });
       payload = ticket.getPayload();
     } catch (verifyError) {

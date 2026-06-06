@@ -18,6 +18,7 @@ import bannerRoutes from './banner.routes.js';
 import geoRoutes from './geo.routes.js';
 import uploadRoutes from './upload.routes.js';
 import contactRoutes from './contact.routes.js';
+import workshopRoutes from './workshop.routes.js';
 import { dbState } from '../config/db.js';
 
 const router = Router();
@@ -56,5 +57,6 @@ router.use('/banners', bannerRoutes);
 router.use('/geo', geoRoutes);
 router.use('/upload', uploadRoutes);
 router.use('/contact', contactRoutes);
+router.use('/workshops', workshopRoutes);
 
 export default router;

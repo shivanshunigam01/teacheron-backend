@@ -1,7 +1,12 @@
+import path from 'path';
+import { fileURLToPath } from 'url';
 import env from '../../config/env.js';
 
 export const PRODUCTION_CLIENT = 'https://www.teacherpoint.in';
 export const PRODUCTION_API = 'https://api.teacherpoint.in';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+export const BRAND_LOGO_CID = 'tp-brand-logo';
 
 function stripTrailingSlash(url) {
   return url.replace(/\/$/, '');
@@ -85,13 +90,40 @@ export function normalizeEmailAssetUrl(url) {
   return `${getEmailApiBaseUrl()}/${u}`;
 }
 
-/** Public URL for logo in emails (must be reachable by Gmail/Outlook servers). */
+/** Absolute path to bundled logo used as an inline email attachment. */
+export function getBrandLogoPath() {
+  return path.resolve(__dirname, '../../../assets/email/teacherspoints-logo.png');
+}
+
+/** Nodemailer inline attachment — logo loads without external image fetch. */
+export function getBrandLogoAttachment() {
+  return {
+    filename: 'teacherspoints-logo.png',
+    path: getBrandLogoPath(),
+    cid: BRAND_LOGO_CID,
+  };
+}
+
+/**
+ * Logo src for email HTML.
+ * Uses a CID reference by default so Gmail/Outlook always show the image.
+ * Set MAIL_LOGO_URL to force a public HTTPS URL instead.
+ */
 export function getBrandLogoUrl() {
   if (process.env.MAIL_LOGO_URL?.trim()) {
     return process.env.MAIL_LOGO_URL.trim();
   }
 
-  return `${getEmailClientUrl()}/teacherspoints-logo.png`;
+  return `cid:${BRAND_LOGO_CID}`;
+}
+
+/** Public HTTPS fallback (API-hosted static asset). */
+export function getBrandLogoPublicUrl() {
+  if (process.env.MAIL_LOGO_URL?.trim()) {
+    return process.env.MAIL_LOGO_URL.trim();
+  }
+
+  return `${getEmailApiBaseUrl()}/assets/email/teacherspoints-logo.png`;
 }
 
 export function getCoursesCatalogUrl() {

@@ -128,10 +128,18 @@ export const testSmtp = asyncHandler(async (req, res) => {
     return ApiResponse.ok(res, { sent: false }, 'Recipient email required');
   }
 
+  const { wrapEmail } = await import('../templates/email/baseLayout.js');
+  const html = wrapEmail({
+    title: 'SMTP test — your mail server is working',
+    preheader: 'TeachersPoints transactional email delivery is configured correctly.',
+    bodyHtml:
+      '<p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:#334155;">If you received this message, SMTP is working on your TeachersPoints server and the brand logo above should be visible.</p>',
+  });
+
   const result = await sendMail({
     to,
-    subject: 'TeachersPoints — SMTP test (production)',
-    html: '<p>If you received this, SMTP is working on your TeachersPoints server.</p>',
+    subject: 'TeachersPoints — SMTP test',
+    html,
     text: 'If you received this, SMTP is working on your TeachersPoints server.',
   });
 

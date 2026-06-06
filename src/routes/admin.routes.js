@@ -7,6 +7,13 @@ import { verifyJWT, requireRole } from '../middleware/auth.middleware.js';
 import { validate } from '../middleware/validate.middleware.js';
 import { adminCreateUserSchema, adminUpdateUserSchema } from '../validators/admin.validator.js';
 import { createBannerSchema, updateBannerSchema } from '../validators/banner.validator.js';
+import * as workshop from '../controllers/workshop.controller.js';
+import {
+  workshopRejectSchema,
+  workshopStatusSchema,
+  workshopIdParamSchema,
+  workshopListQuerySchema,
+} from '../validators/workshop.validator.js';
 
 const r = Router();
 r.use(verifyJWT, requireRole('admin'));
@@ -34,5 +41,11 @@ r.get('/ip-monitor/groups', ipMonitor.groups);
 r.get('/ip-monitor/logs', ipMonitor.logs);
 r.get('/ip-monitor/users/:ipAddress', ipMonitor.usersByIp);
 r.patch('/ip-monitor/users/:userId/flag', ipMonitor.flagUser);
+
+r.get('/workshops', validate(workshopListQuerySchema), workshop.adminList);
+r.get('/workshops/:id', validate(workshopIdParamSchema), workshop.adminGetById);
+r.patch('/workshops/:id/approve', validate(workshopIdParamSchema), workshop.adminApprove);
+r.patch('/workshops/:id/reject', validate(workshopRejectSchema), workshop.adminReject);
+r.patch('/workshops/:id/status', validate(workshopStatusSchema), workshop.adminUpdateStatus);
 
 export default r;
