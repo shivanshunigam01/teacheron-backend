@@ -38,12 +38,14 @@ export const teacherProfileBodySchema = z.object({
     .object({
       profilePhoto: z.string().url().optional().or(z.literal('')),
       teacherType: z
-        .enum(['individual', 'coaching_institute', 'school', 'college', 'freelancer', 'company'])
+        .enum(['individual', 'coaching_institute', 'school', 'college', 'freelancer', 'company', 'other'])
         .optional(),
+      teacherTypeOther: z.string().min(1).max(120).optional(),
       speciality: z.string().min(1).max(200).optional(),
       specialty: z.string().min(1).max(200).optional(),
       bio: z.string().min(150).max(3000).optional(),
       gender: z.enum(['male', 'female', 'other']).optional(),
+      genderOther: z.string().min(1).max(80).optional(),
       birthDate: isoDate,
       dateOfBirth: isoDate,
       country: z.string().min(1).max(100).optional(),
@@ -74,7 +76,21 @@ export const teacherProfileBodySchema = z.object({
 });
 
 export const teacherProfileUpsertSchema = z.object({
-  body: teacherProfileBodySchema,
+  body: teacherProfileBodySchema
+    .refine(
+      (d) =>
+        !d.teacherProfile ||
+        d.teacherProfile.teacherType !== 'other' ||
+        Boolean(d.teacherProfile.teacherTypeOther?.trim()),
+      { message: 'teacherTypeOther is required when teacherType is other' },
+    )
+    .refine(
+      (d) =>
+        !d.teacherProfile ||
+        d.teacherProfile.gender !== 'other' ||
+        Boolean(d.teacherProfile.genderOther?.trim()),
+      { message: 'genderOther is required when gender is other' },
+    ),
 });
 
 export const adminTeacherStatusSchema = z.object({

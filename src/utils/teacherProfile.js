@@ -7,6 +7,7 @@ const TEACHER_TYPES = [
   'college',
   'freelancer',
   'company',
+  'other',
 ];
 
 export { TEACHER_TYPES };
@@ -132,10 +133,12 @@ export function shapeTeacherProfileDto(user) {
     isActive: o.isActive !== false,
     teacherProfile: {
       teacherType: p.teacherType || 'individual',
+      teacherTypeOther: p.teacherTypeOther || '',
       speciality: p.speciality || '',
       specialty: p.speciality || '',
       bio: p.bio || '',
       gender: p.gender || '',
+      genderOther: p.genderOther || '',
       birthDate: p.birthDate || null,
       dateOfBirth: p.birthDate || null,
       country: p.country || '',

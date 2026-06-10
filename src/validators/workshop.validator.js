@@ -9,7 +9,8 @@ const workshopBodyBase = {
   workshopDate: z.string().min(1),
   startTime: z.string().regex(timeRegex, 'startTime must be HH:mm'),
   endTime: z.string().regex(timeRegex, 'endTime must be HH:mm'),
-  mode: z.enum(['online', 'offline']),
+  mode: z.enum(['online', 'offline', 'other']),
+  modeOther: z.string().min(1).max(120).optional(),
   meetingLink: z.string().max(500).optional().or(z.literal('')),
   location: z.string().max(500).optional().or(z.literal('')),
   isFree: z.boolean().optional(),
@@ -23,10 +24,14 @@ export const workshopRequestSchema = z.object({
     .object(workshopBodyBase)
     .refine(
       (d) => {
+        if (d.mode === 'other') return Boolean(d.modeOther?.trim());
         if (d.mode === 'online') return Boolean(d.meetingLink?.trim());
         return Boolean(d.location?.trim());
       },
-      { message: 'Online workshops require meetingLink; offline workshops require location' },
+      {
+        message:
+          'Online workshops require meetingLink; offline workshops require location; other modes require modeOther',
+      },
     )
     .refine(
       (d) => {

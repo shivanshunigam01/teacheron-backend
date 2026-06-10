@@ -29,8 +29,12 @@ export function shapeRequirement(doc) {
     title: o.title,
     subject: o.subject,
     skills: o.skills || [],
-    level: LEVEL_LABELS[o.level] || o.level,
+    level:
+      o.level === 'other' && o.levelOther
+        ? o.levelOther
+        : LEVEL_LABELS[o.level] || o.level,
     levelCode: o.level,
+    levelOther: o.levelOther || undefined,
     jobType: o.jobType || 'tutoring',
     mode: o.mode,
     sessionsPerWeek: o.sessionsPerWeek,
@@ -40,7 +44,9 @@ export function shapeRequirement(doc) {
     budget: Number(o.budgetPerHour ?? 0),
     budgetPerHour: Number(o.budgetPerHour ?? 0),
     currency: o.currency || 'USD',
-    duration: o.duration,
+    duration:
+      o.duration === 'other' && o.durationOther ? o.durationOther : o.duration,
+    durationOther: o.durationOther || undefined,
     details: o.details,
     status: mapRequirementStatus(o),
     backendStatus: o.status,
@@ -141,6 +147,7 @@ export async function createRequirement(user, body) {
     subject: body.subject.trim(),
     skills,
     level: body.level || 'high',
+    levelOther: body.level === 'other' ? body.levelOther?.trim() : undefined,
     jobType: body.jobType || 'tutoring',
     mode: body.mode || 'online',
     sessionsPerWeek: body.sessionsPerWeek != null ? Number(body.sessionsPerWeek) : undefined,
@@ -150,6 +157,7 @@ export async function createRequirement(user, body) {
     budgetPerHour: Number(body.budgetPerHour ?? body.budget ?? 0),
     currency: body.currency || 'USD',
     duration: body.duration || 'ongoing',
+    durationOther: body.duration === 'other' ? body.durationOther?.trim() : undefined,
     details: body.details.trim(),
     status: 'pending',
     approved: false,

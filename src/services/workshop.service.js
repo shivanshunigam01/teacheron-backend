@@ -34,6 +34,7 @@ export function shapeWorkshop(workshop, extra = {}) {
     startTime: obj.startTime,
     endTime: obj.endTime,
     mode: obj.mode,
+    modeOther: obj.modeOther || '',
     meetingLink: obj.meetingLink || '',
     location: obj.location || '',
     isFree: obj.isFree,

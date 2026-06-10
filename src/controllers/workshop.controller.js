@@ -36,6 +36,7 @@ function buildWorkshopPayload(body, teacher) {
     startTime: body.startTime,
     endTime: body.endTime,
     mode: body.mode,
+    modeOther: body.mode === 'other' ? (body.modeOther || '').trim() : '',
     meetingLink: body.mode === 'online' ? (body.meetingLink || '').trim() : '',
     location: body.mode === 'offline' ? (body.location || '').trim() : '',
     isFree,

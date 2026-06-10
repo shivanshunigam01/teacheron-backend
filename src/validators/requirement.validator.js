@@ -5,7 +5,8 @@ const createBody = z.object({
   subject: z.string().min(1).max(100),
   skills: z.array(z.string().min(1).max(100)).optional(),
   skill: z.string().max(100).optional(),
-  level: z.enum(['elem', 'middle', 'high', 'college', 'pro']).optional(),
+  level: z.enum(['elem', 'middle', 'high', 'college', 'pro', 'other']).optional(),
+  levelOther: z.string().min(1).max(100).optional(),
   jobType: z.enum(['tutoring', 'assignment']).optional(),
   mode: z.enum(['online', 'offline', 'both']).optional(),
   sessionsPerWeek: z.number().min(1).max(14).optional(),
@@ -15,12 +16,19 @@ const createBody = z.object({
   budgetPerHour: z.number().min(0).max(100000).optional(),
   budget: z.number().min(0).max(100000).optional(),
   currency: z.string().length(3).optional(),
-  duration: z.enum(['once', 'month', 'semester', 'ongoing']).optional(),
+  duration: z.enum(['once', 'month', 'semester', 'ongoing', 'other']).optional(),
+  durationOther: z.string().min(1).max(100).optional(),
   details: z.string().min(20).max(5000),
 });
 
 export const createRequirementSchema = z.object({
-  body: createBody,
+  body: createBody
+    .refine((d) => d.level !== 'other' || Boolean(d.levelOther?.trim()), {
+      message: 'levelOther is required when level is other',
+    })
+    .refine((d) => d.duration !== 'other' || Boolean(d.durationOther?.trim()), {
+      message: 'durationOther is required when duration is other',
+    }),
 });
 
 export const listJobsQuerySchema = z.object({

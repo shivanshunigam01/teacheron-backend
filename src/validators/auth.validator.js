@@ -91,8 +91,9 @@ const experienceEntrySchema = z.object({
 
 const teacherProfileSchema = z.object({
   teacherType: z
-    .enum(['individual', 'coaching_institute', 'school', 'college', 'freelancer', 'company'])
+    .enum(['individual', 'coaching_institute', 'school', 'college', 'freelancer', 'company', 'other'])
     .optional(),
+  teacherTypeOther: z.string().min(1).max(120).optional(),
   speciality: z.string().min(1).max(200).optional(),
   birthDate: z
     .string()
@@ -113,6 +114,7 @@ const teacherProfileSchema = z.object({
   publicLocation: z.string().max(300).optional(),
   languages: z.array(z.string()).optional(),
   gender: z.enum(['male', 'female', 'other']).optional(),
+  genderOther: z.string().min(1).max(80).optional(),
   availability: z.string().max(200).optional(),
   onlineTeaching: z.boolean().optional(),
   homeTuition: z.boolean().optional(),
@@ -129,16 +131,28 @@ const studentProfileSchema = z.object({
 });
 
 export const updateProfileSchema = z.object({
-  body: z.object({
-    name: z.string().min(2).max(100).optional(),
-    phone: z.string().min(6).max(20).optional(),
-    phoneCountryCode: z.string().regex(/^\+\d{1,4}$/).optional(),
-    avatarUrl: z.string().url().optional().or(z.literal('')),
-    theme: z.enum(['light', 'dark']).optional(),
-    locale: z.string().max(10).optional(),
-    teacherProfile: teacherProfileSchema.optional(),
-    studentProfile: studentProfileSchema.optional(),
-  }),
+  body: z
+    .object({
+      name: z.string().min(2).max(100).optional(),
+      phone: z.string().min(6).max(20).optional(),
+      phoneCountryCode: z.string().regex(/^\+\d{1,4}$/).optional(),
+      avatarUrl: z.string().url().optional().or(z.literal('')),
+      theme: z.enum(['light', 'dark']).optional(),
+      locale: z.string().max(10).optional(),
+      teacherProfile: teacherProfileSchema.optional(),
+      studentProfile: studentProfileSchema.optional(),
+    })
+    .refine(
+      (d) =>
+        d.teacherProfile?.teacherType !== 'other' ||
+        Boolean(d.teacherProfile?.teacherTypeOther?.trim()),
+      { message: 'teacherTypeOther is required when teacherType is other' },
+    )
+    .refine(
+      (d) =>
+        d.teacherProfile?.gender !== 'other' || Boolean(d.teacherProfile?.genderOther?.trim()),
+      { message: 'genderOther is required when gender is other' },
+    ),
 });
 
 export const verifyEmailSchema = z.object({

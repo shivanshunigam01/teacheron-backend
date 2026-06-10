@@ -12,9 +12,10 @@ const requirementSchema = new Schema(
     skills: [{ type: String, trim: true }],
     level: {
       type: String,
-      enum: ['elem', 'middle', 'high', 'college', 'pro'],
+      enum: ['elem', 'middle', 'high', 'college', 'pro', 'other'],
       default: 'high',
     },
+    levelOther: { type: String, trim: true },
     jobType: {
       type: String,
       enum: ['tutoring', 'assignment'],
@@ -33,9 +34,10 @@ const requirementSchema = new Schema(
     currency: { type: String, default: 'USD' },
     duration: {
       type: String,
-      enum: ['once', 'month', 'semester', 'ongoing'],
+      enum: ['once', 'month', 'semester', 'ongoing', 'other'],
       default: 'ongoing',
     },
+    durationOther: { type: String, trim: true },
     details: { type: String, required: true, trim: true },
     status: {
       type: String,
