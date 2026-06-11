@@ -9,8 +9,10 @@ import Course from '../models/Course.model.js';
 import Listing from '../models/Listing.model.js';
 import Accommodation from '../models/Accommodation.model.js';
 import Banner from '../models/Banner.model.js';
+import Subject from '../models/Subject.model.js';
 import { computeProfileComplete } from './profileComplete.js';
 import { CATEGORY_SEED, buildCourseSeed } from './seedCourses.js';
+import { SUBJECT_CATALOG } from '../data/subjects.catalog.js';
 
 await connectDB();
 await Promise.all([
@@ -21,6 +23,7 @@ await Promise.all([
   Listing.deleteMany(),
   Accommodation.deleteMany(),
   Banner.deleteMany(),
+  Subject.deleteMany(),
 ]);
 
 const adminAccounts = [
@@ -206,6 +209,9 @@ const student = await User.create({
 });
 student.profileComplete = computeProfileComplete(student);
 await student.save();
+
+await Subject.insertMany(SUBJECT_CATALOG);
+console.log(`  Subjects: ${SUBJECT_CATALOG.length} catalog entries`);
 
 const cats = await Category.insertMany(
   CATEGORY_SEED.map((c) => ({

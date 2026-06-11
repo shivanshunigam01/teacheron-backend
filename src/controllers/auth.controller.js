@@ -176,14 +176,18 @@ export const resendVerification = asyncHandler(async (req, res) => {
 
 export const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
-  const user = await User.findOne({ email: email.toLowerCase() }).select('+passwordHash');
-  if (!user?.passwordHash) {
+  const user = await User.findOne({ email: email.toLowerCase().trim() }).select('+passwordHash');
+
+  if (!user) {
     throw ApiError.unauthorized(
-      user ? 'This account uses Google sign-in. Continue with Google instead.' : 'Invalid email or password',
+      'No account found with this email address. Check the spelling or sign up for a new account.',
     );
   }
+  if (!user.passwordHash) {
+    throw ApiError.unauthorized('This account uses Google sign-in. Continue with Google instead.');
+  }
   if (!(await bcrypt.compare(password, user.passwordHash))) {
-    throw ApiError.unauthorized('Invalid email or password');
+    throw ApiError.unauthorized('Incorrect password. Please try again or use Forgot password.');
   }
   if (!user.isActive) throw ApiError.forbidden('Account is disabled');
 

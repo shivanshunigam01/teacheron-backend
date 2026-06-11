@@ -21,6 +21,7 @@ import contactRoutes from './contact.routes.js';
 import workshopRoutes from './workshop.routes.js';
 import teacherRoutes from './teacher.routes.js';
 import tutorRoutes from './tutor.routes.js';
+import subjectRoutes from './subject.routes.js';
 import { dbState } from '../config/db.js';
 
 const router = Router();
@@ -62,5 +63,6 @@ router.use('/contact', contactRoutes);
 router.use('/workshops', workshopRoutes);
 router.use('/teacher', teacherRoutes);
 router.use('/tutors', tutorRoutes);
+router.use('/subjects', subjectRoutes);
 
 export default router;
