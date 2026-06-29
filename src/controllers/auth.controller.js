@@ -179,9 +179,11 @@ export const login = asyncHandler(async (req, res) => {
   const user = await User.findOne({ email: email.toLowerCase().trim() }).select('+passwordHash');
 
   if (!user) {
-    throw ApiError.unauthorized(
+    const err = ApiError.unauthorized(
       'No account found with this email address. Check the spelling or sign up for a new account.',
     );
+    err.errors = [{ field: 'email', message: 'ACCOUNT_NOT_REGISTERED' }];
+    throw err;
   }
   if (!user.passwordHash) {
     throw ApiError.unauthorized('This account uses Google sign-in. Continue with Google instead.');

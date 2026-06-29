@@ -160,3 +160,41 @@ export const verifyEmailSchema = z.object({
     otp: z.string().regex(/^\d{6}$/, 'Enter the 6-digit code from your email'),
   }),
 });
+
+const internationalPhoneSchema = z
+  .string()
+  .min(8)
+  .max(16)
+  .refine((v) => {
+    const digits = v.replace(/\D/g, '');
+    return digits.length >= 8 && digits.length <= 15 && /^[1-9]\d{7,14}$/.test(digits);
+  }, 'Enter a valid phone number with country code');
+
+export const whatsappSendOtpSchema = z.object({
+  body: z.object({
+    phone: internationalPhoneSchema,
+    purpose: z.enum(['login', 'signup']).default('login'),
+  }),
+});
+
+export const whatsappVerifyOtpSchema = z.object({
+  body: z.object({
+    phone: internationalPhoneSchema,
+    otp: z.string().regex(/^\d{6}$/, 'Enter the 6-digit OTP'),
+    purpose: z.enum(['login', 'signup']).default('login'),
+  }),
+});
+
+export const whatsappLoginSchema = z.object({
+  body: z.object({
+    phone: internationalPhoneSchema,
+  }),
+});
+
+export const whatsappSignupSchema = z.object({
+  body: z.object({
+    name: z.string().min(2).max(100),
+    phone: internationalPhoneSchema,
+    role: z.enum(['student', 'teacher']),
+  }),
+});

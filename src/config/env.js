@@ -48,6 +48,31 @@ const env = {
   clientUrl:
     process.env.CLIENT_URL ||
     (process.env.NODE_ENV === 'production' ? 'https://www.teacherpoint.in' : 'https://www.teacherpoint.in'),
+  aisensy: {
+    apiEndpoint: process.env.AISENSY_API_ENDPOINT?.trim() || 'https://backend.aisensy.com/campaign/t1/api/v2',
+    apiKey: process.env.AISENSY_API_KEY?.trim() || '',
+    campaignName: process.env.AISENSY_CAMPAIGN_NAME?.trim() || '',
+    templateName: process.env.AISENSY_TEMPLATE_NAME?.trim() || '',
+    channel: process.env.AISENSY_CHANNEL?.trim() || 'WhatsApp',
+    userName: process.env.AISENSY_USER_NAME?.trim() || 'TeacherPoint',
+    source: process.env.AISENSY_SOURCE?.trim() || 'auth-otp',
+    otpParamKey: process.env.AISENSY_OTP_PARAM_KEY?.trim() || 'FirstName',
+    templateParamsJson: process.env.AISENSY_TEMPLATE_PARAMS_JSON?.trim() || '',
+    paramsFallbackJson: process.env.AISENSY_PARAMS_FALLBACK_JSON?.trim() || '',
+    buttonsJson: process.env.AISENSY_BUTTONS_JSON?.trim() || '',
+    useCopyCodeButton: String(process.env.AISENSY_USE_COPY_CODE_BUTTON ?? 'true') === 'true',
+  },
+  whatsappOtp: {
+    length: Number(process.env.OTP_LENGTH || 6),
+    expiryMinutes: Number(process.env.OTP_EXPIRY_MINUTES || 5),
+    resendSeconds: Number(process.env.OTP_RESEND_SECONDS || 60),
+    maxAttempts: Number(process.env.OTP_MAX_ATTEMPTS || 5),
+    lockMinutes: Number(process.env.OTP_LOCK_MINUTES || 15),
+  },
+  razorpay: {
+    keyId: process.env.RAZORPAY_KEY_ID?.trim() || '',
+    keySecret: process.env.RAZORPAY_KEY_SECRET?.trim() || '',
+  },
 };
 
 export default env;

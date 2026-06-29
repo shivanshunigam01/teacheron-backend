@@ -38,14 +38,16 @@ const experienceEntrySchema = new Schema(
 const userSchema = new Schema(
   {
     name: { type: String, required: true, trim: true },
-    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    email: { type: String, lowercase: true, trim: true, sparse: true, unique: true },
     passwordHash: { type: String, select: false },
     googleId: { type: String, unique: true, sparse: true, index: true },
-    provider: { type: String, enum: ['local', 'google'], default: 'local' },
+    provider: { type: String, enum: ['local', 'google', 'whatsapp'], default: 'local' },
     role: { type: String, enum: ['student', 'teacher', 'parent', 'admin'], required: true },
     avatarUrl: String,
     phone: String,
+    phoneE164: { type: String, unique: true, sparse: true, index: true },
     phoneCountryCode: { type: String, default: '+91' },
+    phoneVerifiedAt: Date,
     locale: { type: String, default: 'en' },
     theme: { type: String, enum: ['light', 'dark'], default: 'light' },
     isVerified: { type: Boolean, default: false },
