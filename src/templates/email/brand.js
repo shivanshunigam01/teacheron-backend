@@ -2,8 +2,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import env from '../../config/env.js';
 
-export const PRODUCTION_CLIENT = 'https://www.teacherpoint.in';
-export const PRODUCTION_API = 'https://api.teacherpoint.in';
+export const PRODUCTION_CLIENT = 'https://www.teacherpoint.org';
+export const PRODUCTION_API = 'https://api.teacherpoint.org';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const BRAND_LOGO_CID = 'tp-brand-logo';
@@ -24,9 +24,9 @@ function isProductionDeployment() {
   const client = process.env.CLIENT_URL || '';
 
   return (
-    /teacherpoint\.in/i.test(api) ||
-    /teacherpoint\.in/i.test(cors) ||
-    /teacherpoint\.in/i.test(client)
+    /teacherpoint.org/i.test(api) ||
+    /teacherpoint.org/i.test(cors) ||
+    /teacherpoint.org/i.test(client)
   );
 }
 
@@ -61,7 +61,7 @@ export function getEmailApiBaseUrl() {
   const api = (env.API_BASE_URL || process.env.API_BASE_URL || '').trim();
   const bare = api.replace(/\/api\/v1\/?$/i, '').replace(/\/$/, '');
 
-  if (/teacherpoint\.in/i.test(bare)) return PRODUCTION_API;
+  if (/teacherpoint.org/i.test(bare)) return PRODUCTION_API;
   if (bare && !isLocalhostUrl(bare)) return bare;
   if (isProductionDeployment()) return PRODUCTION_API;
 

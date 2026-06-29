@@ -21,7 +21,7 @@ try {
   const info = await transport.sendMail({
     from: `"${process.env.MAIL_FROM_NAME}" <${process.env.MAIL_FROM_EMAIL}>`,
     to: process.env.SMTP_USER,
-    subject: 'TeachersPoints SMTP test',
+    subject: 'TeacherPoint SMTP test',
     text: 'SMTP test from scripts/test-smtp.js',
   });
   console.log('sent:', info.messageId);

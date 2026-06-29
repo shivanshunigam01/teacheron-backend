@@ -6,19 +6,19 @@ const copy = {
   teacher: {
     headline: 'Verify your tutor email',
     intro:
-      'Hi <strong>{name}</strong>, welcome to TeachersPoints! Enter this one-time code to verify your email and continue setting up your tutor profile.',
+      'Hi <strong>{name}</strong>, welcome to TeacherPoint! Enter this one-time code to verify your email and continue setting up your tutor profile.',
     afterNote:
       'After verification you will complete your tutor profile. Your welcome email with course highlights is sent once your profile is complete.',
-    textSubject: 'Verify your tutor email — TeachersPoints',
+    textSubject: 'Verify your tutor email — TeacherPoint',
     textAfter: 'Your welcome email will be sent once your profile is complete.',
   },
   student: {
     headline: 'Verify your student email',
     intro:
-      'Hi <strong>{name}</strong>, welcome to TeachersPoints! Enter this one-time code to verify your email and start exploring courses and tutors.',
+      'Hi <strong>{name}</strong>, welcome to TeacherPoint! Enter this one-time code to verify your email and start exploring courses and tutors.',
     afterNote:
       'After verification you can complete your profile and browse courses. A welcome email with popular courses is sent once you verify.',
-    textSubject: 'Verify your student email — TeachersPoints',
+    textSubject: 'Verify your student email — TeacherPoint',
     textAfter: 'Your welcome email with course highlights is sent after you verify.',
   },
 };
@@ -56,7 +56,7 @@ export function buildOtpEmail({ name, otp, role = 'teacher' }) {
   `;
 
   const html = wrapEmail({
-    preheader: `Your TeachersPoints verification code is ${otp}`,
+    preheader: `Your TeacherPoint verification code is ${otp}`,
     title: 'Verify your email to continue',
     bodyHtml,
   });
@@ -73,11 +73,11 @@ export function buildOtpEmail({ name, otp, role = 'teacher' }) {
     c.textAfter,
     `Verify email: ${getVerifyEmailUrl()}`,
     '',
-    '— TeachersPoints',
+    '— TeacherPoint',
   ].join('\n');
 
   return {
-    subject: `${otp} is your TeachersPoints verification code`,
+    subject: `${otp} is your TeacherPoint verification code`,
     html,
     text,
   };

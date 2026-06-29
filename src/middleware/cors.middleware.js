@@ -2,8 +2,8 @@ import cors from 'cors';
 
 /** Allowed browser origins — single source of truth for CORS. */
 export const ALLOWED_ORIGINS = [
-  'https://teacherpoint.in',
-  'https://www.teacherpoint.in',
+  'https://teacherpoint.org',
+  'https://www.teacherpoint.org',
   'http://localhost:3000',
   'http://localhost:5173',
 ];

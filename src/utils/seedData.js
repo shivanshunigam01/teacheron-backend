@@ -291,7 +291,7 @@ await Banner.insertMany([
   },
   {
     title: 'Meet your next mentor',
-    description: 'Watch how thousands of learners hit their goals with TeachersPoints.',
+    description: 'Watch how thousands of learners hit their goals with TeacherPoint.',
     ctaText: 'Start learning',
     ctaLink: '/courses',
     mediaType: 'video',

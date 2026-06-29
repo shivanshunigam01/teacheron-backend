@@ -39,7 +39,7 @@ export async function getSmtpSettings() {
     secure: doc.secure === true,
     user: doc.user,
     pass: String(doc.pass).replace(/\s/g, ''),
-    fromName: doc.fromName || 'TeachersPoints',
+    fromName: doc.fromName || 'TeacherPoint',
     fromEmail: doc.fromEmail || doc.user,
   };
   cacheAt = now;

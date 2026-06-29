@@ -1,4 +1,4 @@
-# Deploy backend to api.teacherpoint.in
+# Deploy backend to api.teacherpoint.org
 
 ## Root cause (most common)
 
@@ -14,14 +14,14 @@ Your **teacherpoint** app (correct) returns:
 {"status":"ok","authRoutes":["POST /auth/register",...]}
 ```
 
-Fix nginx so `api.teacherpoint.in` → `http://127.0.0.1:4000` (teacherpoint-api), not darotech.
+Fix nginx so `api.teacherpoint.org` → `http://127.0.0.1:4000` (teacherpoint-api), not darotech.
 
 ---
 
 Your PM2 logs show Node **is running** on port **4000**, but the live site still returns **404 for `/auth/register`**. That means either:
 
 1. **nginx points to the wrong app** (e.g. darotech-api), or  
-2. **No nginx proxy** for api.teacherpoint.in.
+2. **No nginx proxy** for api.teacherpoint.org.
 
 Follow these steps **on the Ubuntu server**.
 
@@ -31,9 +31,9 @@ Follow these steps **on the Ubuntu server**.
 
 ```bash
 curl -s http://127.0.0.1:4000/health          # teacherpoint (correct)
-curl -s https://api.teacherpoint.in/health    # public (often wrong app)
+curl -s https://api.teacherpoint.org/health    # public (often wrong app)
 
-sudo grep -r "api.teacherpoint.in\|darotech\|proxy_pass" /etc/nginx/
+sudo grep -r "api.teacherpoint.org\|darotech\|proxy_pass" /etc/nginx/
 pm2 list
 ```
 
@@ -99,12 +99,12 @@ curl -s -X POST http://127.0.0.1:4000/api/v1/auth/register \
 
 `grep sites-enabled` may be **empty** — config is often in `/etc/nginx/conf.d/` or `/etc/nginx/sites-available/`.
 
-### Option A — Edit existing api.teacherpoint.in block
+### Option A — Edit existing api.teacherpoint.org block
 
 Find the file:
 
 ```bash
-sudo grep -rl "api.teacherpoint.in" /etc/nginx/
+sudo grep -rl "api.teacherpoint.org" /etc/nginx/
 ```
 
 Open it and set:
@@ -119,26 +119,26 @@ Keep your existing `ssl_certificate` and `ssl_certificate_key` lines — do not 
 
 ```bash
 cd /var/www/teacheron-backend/teacheron-backend
-sudo cp deploy/nginx-api.teacherpoint.in.conf /etc/nginx/sites-available/api.teacherpoint.in
+sudo cp deploy/nginx-api.teacherpoint.org.conf /etc/nginx/sites-available/api.teacherpoint.org
 ```
 
 Edit SSL paths (required for HTTPS):
 
 ```bash
-sudo nano /etc/nginx/sites-available/api.teacherpoint.in
+sudo nano /etc/nginx/sites-available/api.teacherpoint.org
 ```
 
 Uncomment and set:
 
 ```nginx
-ssl_certificate /etc/letsencrypt/live/api.teacherpoint.in/fullchain.pem;
-ssl_certificate_key /etc/letsencrypt/live/api.teacherpoint.in/privkey.pem;
+ssl_certificate /etc/letsencrypt/live/api.teacherpoint.org/fullchain.pem;
+ssl_certificate_key /etc/letsencrypt/live/api.teacherpoint.org/privkey.pem;
 ```
 
 Enable and reload:
 
 ```bash
-sudo ln -sf /etc/nginx/sites-available/api.teacherpoint.in /etc/nginx/sites-enabled/
+sudo ln -sf /etc/nginx/sites-available/api.teacherpoint.org /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl reload nginx
 ```
@@ -146,7 +146,7 @@ sudo systemctl reload nginx
 ### Verify public URL hits teacherpoint (not darotech)
 
 ```bash
-curl -s https://api.teacherpoint.in/health
+curl -s https://api.teacherpoint.org/health
 ```
 
 Must show `"authRoutes"` — **not** `"service":"darotech-backend"`.
@@ -159,9 +159,9 @@ Must show `"authRoutes"` — **not** `"service":"darotech-backend"`.
 NODE_ENV=production
 PORT=4000
 API_PREFIX=/api/v1
-API_BASE_URL=https://api.teacherpoint.in
-CLIENT_URL=https://www.teacherpoint.in
-MAIL_CLIENT_URL=https://www.teacherpoint.in
+API_BASE_URL=https://api.teacherpoint.org
+CLIENT_URL=https://www.teacherpoint.org
+MAIL_CLIENT_URL=https://www.teacherpoint.org
 MONGO_URI=your_mongodb_uri
 JWT_ACCESS_SECRET=...
 JWT_REFRESH_SECRET=...
@@ -172,7 +172,7 @@ SMTP_PORT=587
 SMTP_SECURE=false
 SMTP_USER=your@gmail.com
 SMTP_PASS=your_gmail_app_password
-MAIL_FROM_NAME=TeachersPoints
+MAIL_FROM_NAME=TeacherPoint
 MAIL_FROM_EMAIL=your@gmail.com
 
 # Geo CMS — IP/location detection for country-wise banners (free key at geoapify.com)
@@ -184,7 +184,7 @@ GOOGLE_CLIENT_ID=127339398195-5gghcqf84esnl3gj8ld6r90qu5dc10a0.apps.googleuserco
 
 Use a [Gmail App Password](https://support.google.com/accounts/answer/185833) (16 chars, no spaces). `MAIL_FROM_EMAIL` must match `SMTP_USER` for Gmail.
 
-**Google login:** Backend `GOOGLE_CLIENT_ID` verifies tokens from the browser. The frontend must be built with the matching `VITE_GOOGLE_CLIENT_ID` on Vercel. In Google Cloud Console, add `https://www.teacherpoint.in` under **Authorized JavaScript origins**. Check: `curl -s https://api.teacherpoint.in/health` should show `"googleAuth":{"configured":true,...}`.
+**Google login:** Backend `GOOGLE_CLIENT_ID` verifies tokens from the browser. The frontend must be built with the matching `VITE_GOOGLE_CLIENT_ID` on Vercel. In Google Cloud Console, add `https://www.teacherpoint.org` under **Authorized JavaScript origins**. Check: `curl -s https://api.teacherpoint.org/health` should show `"googleAuth":{"configured":true,...}`.
 
 After editing `.env`:
 
@@ -198,7 +198,7 @@ You should see: `SMTP ready (env) — sending as your@gmail.com`
 Verify:
 
 ```bash
-curl -s https://api.teacherpoint.in/health | jq '.smtp'
+curl -s https://api.teacherpoint.org/health | jq '.smtp'
 # { "configured": true, "source": "env", "fromEmail": "..." }
 ```
 
@@ -262,7 +262,7 @@ If nothing appears but nginx access log shows hits, nginx is **not** forwarding 
 
 **Fix:**
 
-1. Update nginx config — remove all `add_header Access-Control-*` from `api.teacherpoint.in` (see `deploy/nginx-api.teacherpoint.in.conf`).
+1. Update nginx config — remove all `add_header Access-Control-*` from `api.teacherpoint.org` (see `deploy/nginx-api.teacherpoint.org.conf`).
 2. Proxy OPTIONS to Node (do not answer OPTIONS in nginx).
 3. Redeploy backend + reload nginx:
 
@@ -271,7 +271,7 @@ cd /var/www/teacheron-backend/teacheron-backend
 git pull origin main
 npm install
 pm2 restart teacherpoint-api --update-env
-sudo cp deploy/nginx-api.teacherpoint.in.conf /etc/nginx/sites-available/api.teacherpoint.in
+sudo cp deploy/nginx-api.teacherpoint.org.conf /etc/nginx/sites-available/api.teacherpoint.org
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
@@ -279,13 +279,13 @@ sudo nginx -t && sudo systemctl reload nginx
 
 ---
 
-## Enable HTTPS for api.teacherpoint.in (Let's Encrypt)
+## Enable HTTPS for api.teacherpoint.org (Let's Encrypt)
 
-Frontend (`https://teacherpoint.in`) **cannot** call `http://api.teacherpoint.in` (mixed content). API must be HTTPS.
+Frontend (`https://teacherpoint.org`) **cannot** call `http://api.teacherpoint.org` (mixed content). API must be HTTPS.
 
 ### 1. DNS
 
-Ensure `api.teacherpoint.in` A record points to your server IP.
+Ensure `api.teacherpoint.org` A record points to your server IP.
 
 ### 2. Install Certbot (if needed)
 
@@ -299,21 +299,21 @@ sudo apt install -y certbot python3-certbot-nginx
 If HTTPS is not set up yet, temporarily use HTTP-only nginx (proxy to `:4000`, **no** redirect), then:
 
 ```bash
-sudo certbot certonly --nginx -d api.teacherpoint.in
+sudo certbot certonly --nginx -d api.teacherpoint.org
 ```
 
 Or interactive nginx plugin:
 
 ```bash
-sudo certbot --nginx -d api.teacherpoint.in
+sudo certbot --nginx -d api.teacherpoint.org
 ```
 
 ### 4. Deploy production nginx config
 
 ```bash
 cd /var/www/teacheron-backend/teacheron-backend
-sudo cp deploy/nginx-api.teacherpoint.in.conf /etc/nginx/sites-available/api.teacherpoint.in
-sudo ln -sf /etc/nginx/sites-available/api.teacherpoint.in /etc/nginx/sites-enabled/
+sudo cp deploy/nginx-api.teacherpoint.org.conf /etc/nginx/sites-available/api.teacherpoint.org
+sudo ln -sf /etc/nginx/sites-available/api.teacherpoint.org /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
@@ -332,8 +332,8 @@ sudo certbot renew --dry-run
 ### 6. Verify
 
 ```bash
-curl -s https://api.teacherpoint.in/health
-curl -s https://api.teacherpoint.in/api/v1/health
+curl -s https://api.teacherpoint.org/health
+curl -s https://api.teacherpoint.org/api/v1/health
 ```
 
 ### 7. Frontend env (production)
@@ -341,8 +341,8 @@ curl -s https://api.teacherpoint.in/api/v1/health
 Set on Vercel/hosting:
 
 ```env
-VITE_API_BASE_URL=https://api.teacherpoint.in/api/v1
-VITE_API_URL=https://api.teacherpoint.in/api/v1
+VITE_API_BASE_URL=https://api.teacherpoint.org/api/v1
+VITE_API_URL=https://api.teacherpoint.org/api/v1
 ```
 
 Redeploy frontend after changing env vars.

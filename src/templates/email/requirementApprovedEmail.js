@@ -13,7 +13,7 @@ export function buildRequirementApprovedEmail({ studentName, requirementTitle, j
     </p>
     <p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:#334155;">
       Great news — your tutoring requirement <strong>"${safeTitle}"</strong> has been reviewed and
-      <strong>approved by the TeachersPoints admin team</strong>.
+      <strong>approved by the TeacherPoint admin team</strong>.
     </p>
     <p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:#334155;">
       It is now live on our Tutor Jobs board. Verified tutors can view your post and send proposals.
@@ -25,7 +25,7 @@ export function buildRequirementApprovedEmail({ studentName, requirementTitle, j
   `;
 
   return {
-    subject: 'Your tutoring requirement is now live — TeachersPoints',
+    subject: 'Your tutoring requirement is now live — TeacherPoint',
     preheader: `Your post "${requirementTitle}" was approved`,
     html: wrapEmail({
       preheader: `Your requirement "${requirementTitle}" is approved`,
@@ -35,11 +35,11 @@ export function buildRequirementApprovedEmail({ studentName, requirementTitle, j
     text: [
       `Hi ${studentName || 'there'},`,
       '',
-      `Your requirement "${requirementTitle}" has been approved and is now visible to tutors on TeachersPoints.`,
+      `Your requirement "${requirementTitle}" has been approved and is now visible to tutors on TeacherPoint.`,
       '',
       `View tutor jobs: ${link}`,
       '',
-      '— TeachersPoints',
+      '— TeacherPoint',
     ].join('\n'),
   };
 }

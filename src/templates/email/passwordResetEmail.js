@@ -6,15 +6,15 @@ const copy = {
   teacher: {
     headline: 'Reset your tutor password',
     intro:
-      'Hi <strong>{name}</strong>, we received a request to reset the password for your TeachersPoints tutor account. Tap the button below to choose a new password.',
-    subject: 'Reset your TeachersPoints tutor password',
+      'Hi <strong>{name}</strong>, we received a request to reset the password for your TeacherPoint tutor account. Tap the button below to choose a new password.',
+    subject: 'Reset your TeacherPoint tutor password',
     preheader: 'Choose a new password for your tutor account.',
   },
   student: {
     headline: 'Reset your student password',
     intro:
-      'Hi <strong>{name}</strong>, we received a request to reset the password for your TeachersPoints student account. Tap the button below to choose a new password.',
-    subject: 'Reset your TeachersPoints student password',
+      'Hi <strong>{name}</strong>, we received a request to reset the password for your TeacherPoint student account. Tap the button below to choose a new password.',
+    subject: 'Reset your TeacherPoint student password',
     preheader: 'Choose a new password for your student account.',
   },
 };
@@ -66,7 +66,7 @@ export function buildPasswordResetEmail({ name, token, role = 'student', setPass
     '',
     'If you did not request this, ignore this email.',
     '',
-    '— TeachersPoints',
+    '— TeacherPoint',
   ].join('\n');
 
   return {

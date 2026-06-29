@@ -14,8 +14,8 @@ function publicFileUrl(req, filePath) {
     const proto = (req.get('x-forwarded-proto') || req.protocol || 'https').split(',')[0].trim();
     if (host && !/localhost|127\.0\.0\.1/i.test(host)) {
       base = `${proto}://${host}`;
-    } else if (/teacherpoint\.in/i.test(process.env.API_BASE_URL || '')) {
-      base = 'https://api.teacherpoint.in';
+    } else if (/teacherpoint.org/i.test(process.env.API_BASE_URL || '')) {
+      base = 'https://api.teacherpoint.org';
     }
   }
 

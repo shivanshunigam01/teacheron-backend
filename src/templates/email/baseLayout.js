@@ -1,7 +1,7 @@
 import { escapeHtml } from './escapeHtml.js';
 import { getBrandLogoUrl, getEmailClientUrl } from './brand.js';
 
-const BRAND = 'TeachersPoints';
+const BRAND = 'TeacherPoint';
 const PRIMARY = '#6366f1';
 const PRIMARY_DARK = '#4f46e5';
 const ACCENT = '#7c3aed';

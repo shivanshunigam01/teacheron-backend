@@ -101,7 +101,7 @@ export const updateSmtp = asyncHandler(async (req, res) => {
     port: Number(port || 587),
     secure: secure === true,
     user,
-    fromName: fromName || 'TeachersPoints',
+    fromName: fromName || 'TeacherPoint',
     fromEmail: fromEmail || user,
     isActive: isActive !== false,
   };
@@ -131,16 +131,16 @@ export const testSmtp = asyncHandler(async (req, res) => {
   const { wrapEmail } = await import('../templates/email/baseLayout.js');
   const html = wrapEmail({
     title: 'SMTP test — your mail server is working',
-    preheader: 'TeachersPoints transactional email delivery is configured correctly.',
+    preheader: 'TeacherPoint transactional email delivery is configured correctly.',
     bodyHtml:
-      '<p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:#334155;">If you received this message, SMTP is working on your TeachersPoints server and the brand logo above should be visible.</p>',
+      '<p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:#334155;">If you received this message, SMTP is working on your TeacherPoint server and the brand logo above should be visible.</p>',
   });
 
   const result = await sendMail({
     to,
-    subject: 'TeachersPoints — SMTP test',
+    subject: 'TeacherPoint — SMTP test',
     html,
-    text: 'If you received this, SMTP is working on your TeachersPoints server.',
+    text: 'If you received this, SMTP is working on your TeacherPoint server.',
   });
 
   if (result.stub) {

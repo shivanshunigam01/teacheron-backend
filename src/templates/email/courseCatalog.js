@@ -66,7 +66,7 @@ export function courseCatalogHtml(courses, { heading, viewAllLabel = 'Browse all
 <div style="margin:28px 0 0;padding-top:24px;border-top:1px solid ${BORDER};">
   <h2 style="margin:0 0 4px;font-size:20px;font-weight:700;color:#0f172a;">${safeHeading}</h2>
   <p style="margin:0 0 16px;font-size:14px;color:${MUTED};line-height:1.5;">
-    Here are courses you can explore right now on TeachersPoints:
+    Here are courses you can explore right now on TeacherPoint:
   </p>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
     ${rows}

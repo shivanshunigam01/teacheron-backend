@@ -27,7 +27,7 @@ export function buildTutorPhoneEmail({
       Hi ${safeStudent},
     </p>
     <p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:#334155;">
-      You requested contact details for tutor <strong>${safeTutor}</strong> on TeachersPoints.
+      You requested contact details for tutor <strong>${safeTutor}</strong> on TeacherPoint.
       Here are their details:
     </p>
     <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px 20px;margin:0 0 20px;">
@@ -41,7 +41,7 @@ export function buildTutorPhoneEmail({
 
   return {
     subject: `Contact details for ${tutorName}`,
-    preheader: `Phone number for ${tutorName} — TeachersPoints`,
+    preheader: `Phone number for ${tutorName} — TeacherPoint`,
     html: wrapEmail({
       preheader: `Phone number for ${tutorName}`,
       title: `Contact details — ${tutorName}`,

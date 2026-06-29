@@ -39,15 +39,15 @@ const env = {
     secure: String(process.env.SMTP_SECURE) === 'true',
     user: process.env.SMTP_USER?.trim() || '',
     pass: process.env.SMTP_PASS?.replace(/\s/g, '') || '',
-    fromName: process.env.MAIL_FROM_NAME || 'TeachersPoints',
-    fromEmail: process.env.MAIL_FROM_EMAIL || process.env.SMTP_USER || 'no-reply@teacherpoint.com',
+    fromName: process.env.MAIL_FROM_NAME || 'TeacherPoint',
+    fromEmail: process.env.MAIL_FROM_EMAIL || process.env.SMTP_USER || 'no-reply@teacherpoint.org',
   },
   googleClientId: process.env.GOOGLE_CLIENT_ID?.trim() || '',
   cloudinaryUrl: process.env.CLOUDINARY_URL?.trim() || '',
   cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME?.trim() || '',
   clientUrl:
     process.env.CLIENT_URL ||
-    (process.env.NODE_ENV === 'production' ? 'https://www.teacherpoint.in' : 'https://www.teacherpoint.in'),
+    (process.env.NODE_ENV === 'production' ? 'https://www.teacherpoint.org' : 'http://localhost:5173'),
   aisensy: {
     apiEndpoint: process.env.AISENSY_API_ENDPOINT?.trim() || 'https://backend.aisensy.com/campaign/t1/api/v2',
     apiKey: process.env.AISENSY_API_KEY?.trim() || '',

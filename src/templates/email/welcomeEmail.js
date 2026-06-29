@@ -8,11 +8,11 @@ const MUTED = '#64748b';
 
 const copy = {
   student: {
-    subject: 'Welcome to TeachersPoints — your courses await',
+    subject: 'Welcome to TeacherPoint — your courses await',
     preheader: 'Your account is ready. Browse courses and start learning today.',
     headline: 'Welcome aboard, learner!',
     intro:
-      'Thanks for joining TeachersPoints. Your student account is active — explore expert-led courses, connect with tutors, and start learning at your own pace.',
+      'Thanks for joining TeacherPoint. Your student account is active — explore expert-led courses, connect with tutors, and start learning at your own pace.',
     coursesHeading: 'Popular courses for you',
     coursesEmpty:
       'New courses are added every week. Browse our full catalog to find subjects that match your goals.',
@@ -28,11 +28,11 @@ const copy = {
     courseBtn: 'View course',
   },
   teacher: {
-    subject: 'Welcome to TeachersPoints — grow your teaching practice',
+    subject: 'Welcome to TeacherPoint — grow your teaching practice',
     preheader: 'Your tutor account is live. See what learners are studying on the platform.',
     headline: 'Welcome aboard, tutor!',
     intro:
-      'Thanks for joining TeachersPoints. Your tutor account is ready — build your profile, publish courses, and connect with students who need your expertise.',
+      'Thanks for joining TeacherPoint. Your tutor account is ready — build your profile, publish courses, and connect with students who need your expertise.',
     coursesHeading: 'Featured courses on the platform',
     coursesEmpty:
       'Explore the course catalog to see what students enroll in — then create your own offerings.',
@@ -188,7 +188,7 @@ export function buildWelcomeEmail({ name, email, role, courses = [] }) {
     '',
     `Account: ${email} (${content.roleLabel})`,
     '',
-    '— TeachersPoints',
+    '— TeacherPoint',
   ].join('\n');
 
   return { subject: content.subject, html, text };
