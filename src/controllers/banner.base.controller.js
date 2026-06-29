@@ -3,7 +3,16 @@ import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { getPagination, paginationMeta } from '../utils/pagination.js';
-import { toJSON, toJSONList } from '../utils/serialize.js';
+import { toJSON } from '../utils/serialize.js';
+import { enrichApprovedImageFields } from '../utils/publicAssetUrl.js';
+
+function shapeBanner(doc, req) {
+  return enrichApprovedImageFields(toJSON(doc), req, 'imageUrl');
+}
+
+function shapeBannerList(docs, req) {
+  return docs.map((doc) => shapeBanner(doc, req));
+}
 
 function normalizePayload(body) {
   const data = { ...body };
@@ -36,7 +45,7 @@ export const list = asyncHandler(async (req, res) => {
   ]);
   ApiResponse.ok(
     res,
-    { items: toJSONList(items), pagination: paginationMeta(total, page, limit) },
+    { items: shapeBannerList(items, req), pagination: paginationMeta(total, page, limit) },
     'Banners fetched',
   );
 });
@@ -44,7 +53,7 @@ export const list = asyncHandler(async (req, res) => {
 export const getById = asyncHandler(async (req, res) => {
   const item = await Banner.findById(req.params.id);
   if (!item) throw ApiError.notFound();
-  ApiResponse.ok(res, toJSON(item), 'Banner fetched');
+  ApiResponse.ok(res, shapeBanner(item, req), 'Banner fetched');
 });
 
 export const create = asyncHandler(async (req, res) => {
@@ -52,7 +61,7 @@ export const create = asyncHandler(async (req, res) => {
     ...normalizePayload(req.body),
     createdBy: req.user?.id,
   });
-  ApiResponse.created(res, toJSON(item), 'Banner created');
+  ApiResponse.created(res, shapeBanner(item, req), 'Banner created');
 });
 
 export const update = asyncHandler(async (req, res) => {
@@ -61,7 +70,7 @@ export const update = asyncHandler(async (req, res) => {
     runValidators: true,
   });
   if (!item) throw ApiError.notFound();
-  ApiResponse.ok(res, toJSON(item), 'Banner updated');
+  ApiResponse.ok(res, shapeBanner(item, req), 'Banner updated');
 });
 
 export const remove = asyncHandler(async (req, res) => {

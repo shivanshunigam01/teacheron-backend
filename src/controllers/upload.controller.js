@@ -1,24 +1,13 @@
-import env from '../config/env.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { isCloudinaryConfigured, uploadImageBuffer } from '../services/cloudinary.service.js';
+import { getPublicBaseUrl } from '../utils/publicAssetUrl.js';
 import logger from '../config/logger.js';
 
 function publicFileUrl(req, filePath) {
   const rel = filePath.replace(/\\/g, '/');
-  let base = env.API_BASE_URL.replace(/\/api\/v1\/?$/i, '').replace(/\/$/, '');
-
-  if (/localhost|127\.0\.0\.1/i.test(base)) {
-    const host = req.get('x-forwarded-host') || req.get('host');
-    const proto = (req.get('x-forwarded-proto') || req.protocol || 'https').split(',')[0].trim();
-    if (host && !/localhost|127\.0\.0\.1/i.test(host)) {
-      base = `${proto}://${host}`;
-    } else if (/teacherpoint.org/i.test(process.env.API_BASE_URL || '')) {
-      base = 'https://api.teacherpoint.org';
-    }
-  }
-
+  const base = getPublicBaseUrl(req);
   return `${base}/${rel}`;
 }
 

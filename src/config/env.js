@@ -17,6 +17,11 @@ const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   PORT: Number(process.env.PORT || 5000),
   API_BASE_URL: process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 5000}`,
+  /** Public origin for uploaded assets — e.g. https://api.teacherpoint.org (no /api/v1). */
+  BASE_URL:
+    process.env.BASE_URL ||
+    (process.env.API_BASE_URL || '').replace(/\/api\/v1\/?$/i, '').replace(/\/$/, '') ||
+    `http://localhost:${process.env.PORT || 5000}`,
   CLIENT_URL: process.env.CLIENT_URL || 'http://localhost:5173',
   API_PREFIX: process.env.API_PREFIX || '/api/v1',
   MONGO_URI: process.env.MONGO_URI || 'mongodb://localhost:27017/teacherpoint',

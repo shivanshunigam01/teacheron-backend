@@ -1,3 +1,5 @@
+import { enrichApprovedImageFields } from '../utils/publicAssetUrl.js';
+
 /**
  * Combine workshop date with HH:mm time string.
  * @param {Date|string} date
@@ -21,9 +23,9 @@ export function isWorkshopUpcoming(workshop) {
 }
 
 /** @param {import('mongoose').Document} workshop */
-export function shapeWorkshop(workshop, extra = {}) {
+export function shapeWorkshop(workshop, req = null, extra = {}) {
   const obj = workshop.toObject ? workshop.toObject() : workshop;
-  return {
+  const shaped = {
     id: String(obj._id ?? obj.id),
     title: obj.title,
     category: obj.category,
@@ -50,4 +52,5 @@ export function shapeWorkshop(workshop, extra = {}) {
     updatedAt: obj.updatedAt,
     ...extra,
   };
+  return enrichApprovedImageFields(shaped, req, 'imageUrl');
 }

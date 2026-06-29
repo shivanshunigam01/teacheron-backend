@@ -61,13 +61,13 @@ export const requestWorkshop = asyncHandler(async (req, res) => {
   if (!teacher) throw ApiError.notFound('User not found');
 
   const item = await Workshop.create(buildWorkshopPayload(req.body, teacher));
-  ApiResponse.created(res, shapeWorkshop(item), 'Workshop request submitted for admin approval');
+  ApiResponse.created(res, shapeWorkshop(item, req), 'Workshop request submitted for admin approval');
 });
 
 /** GET /workshops/my-workshops — teacher's own workshops */
 export const myWorkshops = asyncHandler(async (req, res) => {
   const items = await Workshop.find({ teacherId: req.user.id }).sort({ createdAt: -1 });
-  ApiResponse.ok(res, { items: items.map((w) => shapeWorkshop(w)) }, 'Your workshops fetched');
+  ApiResponse.ok(res, { items: items.map((w) => shapeWorkshop(w, req)) }, 'Your workshops fetched');
 });
 
 /** GET /workshops — public approved upcoming workshops */
@@ -82,7 +82,7 @@ export const listPublic = asyncHandler(async (req, res) => {
   const all = await Workshop.find(filter).sort({ workshopDate: 1, startTime: 1 });
   const upcoming = all.filter((w) => isWorkshopUpcoming(w));
   const total = upcoming.length;
-  const items = upcoming.slice(skip, skip + limit).map((w) => shapeWorkshop(w));
+  const items = upcoming.slice(skip, skip + limit).map((w) => shapeWorkshop(w, req));
 
   ApiResponse.ok(
     res,
@@ -108,7 +108,7 @@ export const getById = asyncHandler(async (req, res) => {
     );
   }
 
-  const shaped = shapeWorkshop(item, { registered });
+  const shaped = shapeWorkshop(item, req, { registered });
   if (item.mode === 'online' && !registered && !isOwner && !isAdmin) {
     shaped.meetingLink = '';
   }
@@ -177,7 +177,7 @@ export const adminList = asyncHandler(async (req, res) => {
   ApiResponse.ok(
     res,
     {
-      items: items.map((w) => shapeWorkshop(w)),
+      items: items.map((w) => shapeWorkshop(w, req)),
       pagination: paginationMeta(page, limit, total),
     },
     'Workshop requests fetched',
@@ -195,7 +195,7 @@ export const adminGetById = asyncHandler(async (req, res) => {
   ApiResponse.ok(
     res,
     {
-      ...shapeWorkshop(item),
+      ...shapeWorkshop(item, req),
       registrations: registrations.map((r) => ({
         id: String(r._id),
         studentName: r.studentName || r.userId?.name,
@@ -221,7 +221,7 @@ export const adminApprove = asyncHandler(async (req, res) => {
   item.adminRemark = '';
   await item.save();
 
-  ApiResponse.ok(res, shapeWorkshop(item), 'Workshop approved');
+  ApiResponse.ok(res, shapeWorkshop(item, req), 'Workshop approved');
 });
 
 /** PATCH /admin/workshops/:id/reject */
@@ -235,7 +235,7 @@ export const adminReject = asyncHandler(async (req, res) => {
   item.adminRemark = req.body.adminRemark.trim();
   await item.save();
 
-  ApiResponse.ok(res, shapeWorkshop(item), 'Workshop rejected');
+  ApiResponse.ok(res, shapeWorkshop(item, req), 'Workshop rejected');
 });
 
 /** PATCH /admin/workshops/:id/status — active/inactive toggle for approved workshops */
@@ -259,5 +259,5 @@ export const adminUpdateStatus = asyncHandler(async (req, res) => {
   }
 
   await item.save();
-  ApiResponse.ok(res, shapeWorkshop(item), 'Workshop status updated');
+  ApiResponse.ok(res, shapeWorkshop(item, req), 'Workshop status updated');
 });

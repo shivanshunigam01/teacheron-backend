@@ -6,11 +6,15 @@ import env from '../config/env.js';
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const d = path.join(
-      env.uploadDir,
-      String(new Date().getFullYear()),
-      String(new Date().getMonth() + 1).padStart(2, '0'),
-    );
+    const purpose = String(req.query.purpose || req.body?.purpose || '').toLowerCase();
+    const d =
+      purpose === 'approved'
+        ? path.join(env.uploadDir, 'approved')
+        : path.join(
+            env.uploadDir,
+            String(new Date().getFullYear()),
+            String(new Date().getMonth() + 1).padStart(2, '0'),
+          );
     fs.mkdirSync(d, { recursive: true });
     cb(null, d);
   },

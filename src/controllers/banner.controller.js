@@ -2,7 +2,8 @@ export * from './banner.base.controller.js';
 import Banner from '../models/Banner.model.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
-import { toJSONList } from '../utils/serialize.js';
+import { toJSON } from '../utils/serialize.js';
+import { enrichApprovedImageFields } from '../utils/publicAssetUrl.js';
 import { filterBannersByGeo } from '../utils/bannerGeo.js';
 
 /** Public: active banners (optionally pre-filtered by country/city from IP/geo CMS). */
@@ -30,5 +31,9 @@ export const active = asyncHandler(async (req, res) => {
   };
   items = filterBannersByGeo(items, geo);
 
-  ApiResponse.ok(res, { items: toJSONList(items) }, 'Active banners fetched');
+  ApiResponse.ok(
+    res,
+    { items: items.map((item) => enrichApprovedImageFields(toJSON(item), req, 'imageUrl')) },
+    'Active banners fetched',
+  );
 });
