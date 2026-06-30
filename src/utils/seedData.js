@@ -10,8 +10,16 @@ import Listing from '../models/Listing.model.js';
 import Accommodation from '../models/Accommodation.model.js';
 import Banner from '../models/Banner.model.js';
 import Subject from '../models/Subject.model.js';
+import Workshop from '../models/Workshop.model.js';
+import Requirement from '../models/Requirement.model.js';
 import { computeProfileComplete } from './profileComplete.js';
 import { CATEGORY_SEED, buildCourseSeed } from './seedCourses.js';
+import {
+  seedTeacherAccounts,
+  WORKSHOP_SEEDS,
+  REQUIREMENT_SEEDS,
+  daysFromNow,
+} from './seedTeachers.js';
 import { SUBJECT_CATALOG } from '../data/subjects.catalog.js';
 
 await connectDB();
@@ -24,6 +32,8 @@ await Promise.all([
   Accommodation.deleteMany(),
   Banner.deleteMany(),
   Subject.deleteMany(),
+  Workshop.deleteMany(),
+  Requirement.deleteMany(),
 ]);
 
 const adminAccounts = [
@@ -73,129 +83,10 @@ const legacyAdmin = await User.create({
 await AdminMember.create({ userId: legacyAdmin._id, staffRole: 'super_admin', isActive: true });
 
 const teacherHash = await bcrypt.hash('Teacher@123', env.BCRYPT_ROUNDS);
-const teacher = await User.create({
-  name: 'Demo Tutor',
-  email: 'teacher@teacherpoint.com',
-  passwordHash: teacherHash,
-  role: 'teacher',
-  phone: '555 010 0001',
-  phoneCountryCode: '+1',
-  isVerified: true,
-  teacherProfile: {
-    subjects: ['Mathematics', 'Physics'],
-    bio: 'Experienced tutor for high school and college students.',
-    experience: 8,
-    hourlyRate: 35,
-    location: 'New York, USA',
-    languages: ['English'],
-    gender: 'male',
-    verified: true,
-    online: true,
-    availability: 'Weekdays · Evenings',
-    initials: 'DT',
-    gradient: 'from-blue-500 to-purple-500',
-    rating: 4.9,
-    reviewCount: 48,
-  },
-});
-teacher.profileComplete = computeProfileComplete(teacher);
-await teacher.save();
-
-const extraTutorHash = await bcrypt.hash('Teacher@123', env.BCRYPT_ROUNDS);
-await User.insertMany([
-  {
-    name: 'Priya Sharma',
-    email: 'priya.tutor@teacherpoint.com',
-    passwordHash: extraTutorHash,
-    role: 'teacher',
-    isVerified: true,
-    teacherProfile: {
-      subjects: ['Biology', 'Chemistry'],
-      bio: 'NEET specialist with 95% student success rate.',
-      experience: 6,
-      hourlyRate: 22,
-      location: 'Delhi, India',
-      languages: ['English', 'Hindi'],
-      gender: 'female',
-      verified: true,
-      online: true,
-      initials: 'PS',
-      gradient: 'from-pink-500 to-rose-500',
-      rating: 4.8,
-      reviewCount: 167,
-      availability: 'Evenings',
-    },
-  },
-  {
-    name: 'Rahul Mehta',
-    email: 'rahul.tutor@teacherpoint.com',
-    passwordHash: extraTutorHash,
-    role: 'teacher',
-    isVerified: true,
-    teacherProfile: {
-      subjects: ['Computer Science', 'Python'],
-      bio: 'Ex-Google engineer teaching DSA and full-stack development.',
-      experience: 10,
-      hourlyRate: 30,
-      location: 'Bengaluru, India',
-      languages: ['English', 'Hindi'],
-      gender: 'male',
-      verified: true,
-      online: true,
-      initials: 'RM',
-      gradient: 'from-indigo-500 to-violet-500',
-      rating: 4.9,
-      reviewCount: 421,
-      availability: 'Daily',
-    },
-  },
-  {
-    name: 'Emma Smith',
-    email: 'emma.tutor@teacherpoint.com',
-    passwordHash: extraTutorHash,
-    role: 'teacher',
-    isVerified: true,
-    teacherProfile: {
-      subjects: ['English Literature', 'Spoken English'],
-      bio: 'Award-winning English tutor focused on confident communication.',
-      experience: 5,
-      hourlyRate: 28,
-      location: 'London, UK',
-      languages: ['English'],
-      gender: 'female',
-      verified: true,
-      online: false,
-      initials: 'ES',
-      gradient: 'from-sky-400 to-blue-600',
-      rating: 4.7,
-      reviewCount: 245,
-      availability: 'Weekdays',
-    },
-  },
-  {
-    name: 'David Lee',
-    email: 'david.tutor@teacherpoint.com',
-    passwordHash: extraTutorHash,
-    role: 'teacher',
-    isVerified: true,
-    teacherProfile: {
-      subjects: ['Spoken English', 'IELTS'],
-      bio: 'Confidence-first English coaching for global learners.',
-      experience: 4,
-      hourlyRate: 25,
-      location: 'online',
-      languages: ['English'],
-      gender: 'male',
-      verified: false,
-      online: true,
-      initials: 'DL',
-      gradient: 'from-teal-400 to-cyan-600',
-      rating: 4.6,
-      reviewCount: 134,
-      availability: 'Flexible',
-    },
-  },
-]);
+const teachers = await seedTeacherAccounts(User, teacherHash, computeProfileComplete);
+const teacher = teachers[0];
+const teacherByEmail = Object.fromEntries(teachers.map((t) => [t.email, t]));
+console.log(`  Teachers: ${teachers.length} complete profiles (public tutor directory ready)`);
 
 const studentHash = await bcrypt.hash('Student@123', env.BCRYPT_ROUNDS);
 const student = await User.create({
@@ -233,6 +124,52 @@ const courseRows = buildCourseSeed(catByName, teacher._id, teacher.name);
 await Course.insertMany(courseRows);
 console.log(`  Courses: ${courseRows.length} published with curriculum modules`);
 console.log(`  Categories: ${cats.length} with subcategories`);
+
+const workshopRows = WORKSHOP_SEEDS.map((row) => {
+  const host = teacherByEmail[row.teacherEmail];
+  if (!host) throw new Error(`Workshop seed teacher not found: ${row.teacherEmail}`);
+  return {
+    title: row.title,
+    category: row.category,
+    description: row.description,
+    teacherId: host._id,
+    teacherName: host.name,
+    workshopDate: daysFromNow(row.offsetDays),
+    startTime: row.startTime,
+    endTime: row.endTime,
+    mode: row.mode,
+    meetingLink: row.meetingLink || '',
+    location: row.location || '',
+    isFree: row.isFree !== false,
+    price: row.isFree === false ? Number(row.price || 0) : 0,
+    maxStudents: row.maxStudents,
+    status: 'approved',
+    adminRemark: '',
+  };
+});
+await Workshop.insertMany(workshopRows);
+console.log(`  Workshops: ${workshopRows.length} approved (upcoming)`);
+
+const requirementRows = REQUIREMENT_SEEDS.map((row) => ({
+  studentId: student._id,
+  studentName: student.name,
+  studentEmail: student.email,
+  title: row.title,
+  subject: row.subject,
+  details: row.details,
+  mode: row.mode,
+  city: row.city,
+  country: row.country,
+  budgetPerHour: row.budgetPerHour,
+  currency: row.currency,
+  level: row.level,
+  jobType: row.jobType,
+  status: 'open',
+  approved: true,
+  approvedAt: new Date(),
+}));
+await Requirement.insertMany(requirementRows);
+console.log(`  Tutor jobs: ${requirementRows.length} approved requirements`);
 
 await Listing.insertMany([
   {

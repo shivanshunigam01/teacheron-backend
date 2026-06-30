@@ -1,10 +1,6 @@
-const BIO_MIN = 150;
-const BIO_MAX = 3000;
+import { isBioValid } from './bioWords.js';
 
-export function isBioValid(bio) {
-  const len = String(bio || '').trim().length;
-  return len >= BIO_MIN && len <= BIO_MAX;
-}
+export { isBioValid, BIO_MIN_WORDS, BIO_MAX_CHARS as BIO_MAX } from './bioWords.js';
 
 export function computeProfileComplete(user) {
   if (!user?.name?.trim()) return false;
@@ -40,7 +36,7 @@ export function computeTeacherProfileProgress(user) {
   const p = user.teacherProfile || {};
   const checks = [
     { key: 'photo', label: 'Profile photo', done: Boolean(user.avatarUrl?.trim() || p.profilePhoto?.trim()) },
-    { key: 'bio', label: 'Bio (150+ characters)', done: isBioValid(p.bio) },
+    { key: 'bio', label: 'Bio (150+ words)', done: isBioValid(p.bio) },
     { key: 'subjects', label: 'At least one subject', done: Boolean(p.teachingSubjects?.length || p.subjects?.length) },
     { key: 'experience', label: 'Work experience', done: Boolean(p.experiences?.length || p.experienceEntries?.length) },
     { key: 'education', label: 'Education', done: Boolean(p.education?.length) },
@@ -63,5 +59,3 @@ export function initialsFromName(name) {
     .map((w) => w[0]?.toUpperCase() || '')
     .join('');
 }
-
-export { BIO_MIN, BIO_MAX };

@@ -28,6 +28,8 @@ const experienceEntrySchema = z.object({
   description: z.string().max(2000).optional(),
 });
 
+import { isBioValid, countBioWords } from '../utils/bioWords.js';
+
 export const teacherProfileBodySchema = z.object({
   name: z.string().min(2).max(100).optional(),
   phone: z.string().min(6).max(20).optional(),
@@ -43,7 +45,7 @@ export const teacherProfileBodySchema = z.object({
       teacherTypeOther: z.string().min(1).max(120).optional(),
       speciality: z.string().min(1).max(200).optional(),
       specialty: z.string().min(1).max(200).optional(),
-      bio: z.string().min(150).max(3000).optional(),
+      bio: z.string().max(3000).optional(),
       gender: z.enum(['male', 'female', 'other']).optional(),
       genderOther: z.string().min(1).max(80).optional(),
       birthDate: isoDate,
@@ -77,6 +79,10 @@ export const teacherProfileBodySchema = z.object({
 
 export const teacherProfileUpsertSchema = z.object({
   body: teacherProfileBodySchema
+    .refine(
+      (d) => !d.teacherProfile?.bio || isBioValid(d.teacherProfile.bio),
+      { message: 'Bio must be at least 150 words and at most 3000 characters' },
+    )
     .refine(
       (d) =>
         !d.teacherProfile ||
