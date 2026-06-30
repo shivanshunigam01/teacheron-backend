@@ -1,11 +1,21 @@
 import mongoose from 'mongoose';
 import app from './app.js';
 import { connectDB } from './config/db.js';
-import env from './config/env.js';
+import env, { ENV_FILE_LOADED, ENV_FILE_PATH } from './config/env.js';
 import logger from './config/logger.js';
+import { maskMongoUri } from './utils/mongoUri.js';
 import { verifySmtpConnection } from './services/email.service.js';
 import { initCloudinary, isCloudinaryConfigured } from './services/cloudinary.service.js';
 import { getGoogleAuthStatus } from './services/googleAuth.service.js';
+
+logger.info(`Starting TeacherPoint API — NODE_ENV=${env.NODE_ENV} PORT=${env.PORT}`);
+logger.info(`Env file: ${ENV_FILE_PATH} (${ENV_FILE_LOADED ? 'loaded' : 'not found — using process env'})`);
+logger.info(
+  `MONGO_URI defined: ${Boolean(
+    process.env.MONGO_URI?.trim() || process.env.MONGODB_URI?.trim() || process.env.DATABASE_URL?.trim(),
+  )}`,
+);
+logger.info(`Mongo URI detected: ${maskMongoUri(env.MONGO_URI)}`);
 
 await connectDB();
 await verifySmtpConnection();

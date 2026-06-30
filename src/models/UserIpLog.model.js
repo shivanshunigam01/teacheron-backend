@@ -7,7 +7,7 @@ const userIpLogSchema = new Schema(
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     email: { type: String, trim: true, lowercase: true },
     role: { type: String, enum: ['student', 'teacher', 'parent', 'admin'] },
-    ipAddress: { type: String, required: true, index: true },
+    ipAddress: { type: String, required: true },
     action: { type: String, enum: ['register', 'login'], required: true },
     userAgent: String,
     deviceInfo: String,

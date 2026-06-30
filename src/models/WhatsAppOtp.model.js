@@ -4,13 +4,13 @@ const { Schema } = mongoose;
 
 const whatsAppOtpSchema = new Schema(
   {
-    phone: { type: String, required: true, index: true },
+    phone: { type: String, required: true },
     otpHash: { type: String, required: true, select: false },
     purpose: { type: String, enum: ['login', 'signup'], required: true },
     attempts: { type: Number, default: 0 },
     verified: { type: Boolean, default: false },
     verifiedAt: Date,
-    expiresAt: { type: Date, required: true, index: true },
+    expiresAt: { type: Date, required: true },
     lockedUntil: Date,
   },
   { timestamps: true },

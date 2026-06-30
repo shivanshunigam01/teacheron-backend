@@ -25,7 +25,6 @@ const workshopSchema = new Schema(
       type: String,
       enum: ['pending', 'approved', 'rejected', 'inactive'],
       default: 'pending',
-      index: true,
     },
     adminRemark: { type: String, trim: true, default: '' },
   },

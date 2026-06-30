@@ -3,12 +3,47 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// Always load backend/.env regardless of process cwd (fixes missing SMTP when started from repo root)
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+const backendEnvPath = path.resolve(__dirname, '../../.env');
+
+/** Load backend/.env first; fall back to cwd .env if MONGO_URI still missing. */
+const primary = dotenv.config({ path: backendEnvPath });
+if (!process.env.MONGO_URI?.trim() && !process.env.MONGODB_URI?.trim() && !process.env.DATABASE_URL?.trim()) {
+  dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+}
+
+export const ENV_FILE_PATH = backendEnvPath;
+export const ENV_FILE_LOADED = !primary.error;
+
+/** Resolve MongoDB URI from supported env var names (no localhost fallback). */
+export function resolveMongoUri() {
+  const uri =
+    process.env.MONGO_URI?.trim() ||
+    process.env.MONGODB_URI?.trim() ||
+    process.env.DATABASE_URL?.trim();
+
+  if (!uri) {
+    throw new Error(
+      'MONGO_URI is required. Set it in backend/.env or the environment (e.g. MongoDB Atlas connection string). ' +
+        `Checked: ${backendEnvPath}${primary.error ? ` (not found: ${primary.error.message})` : ''}`,
+    );
+  }
+
+  if (/localhost|127\.0\.0\.1/i.test(uri) && process.env.NODE_ENV === 'production') {
+    throw new Error(
+      'MONGO_URI points to localhost in production. Use your MongoDB Atlas connection string.',
+    );
+  }
+
+  return uri;
+}
 
 const required = ['MONGO_URI', 'JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET'];
 if (process.env.NODE_ENV === 'production') {
   required.forEach((k) => {
+    if (k === 'MONGO_URI') {
+      resolveMongoUri();
+      return;
+    }
     if (!process.env[k]) throw new Error(`Missing env ${k}`);
   });
 }
@@ -24,7 +59,7 @@ const env = {
     `http://localhost:${process.env.PORT || 5000}`,
   CLIENT_URL: process.env.CLIENT_URL || 'http://localhost:5173',
   API_PREFIX: process.env.API_PREFIX || '/api/v1',
-  MONGO_URI: process.env.MONGO_URI || 'mongodb://localhost:27017/teacherpoint',
+  MONGO_URI: resolveMongoUri(),
   JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET || 'dev_access_secret_change_me_32_chars',
   JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || 'dev_refresh_secret_change_me_32_chars',
   JWT_ACCESS_EXPIRES: process.env.JWT_ACCESS_EXPIRES || '15m',

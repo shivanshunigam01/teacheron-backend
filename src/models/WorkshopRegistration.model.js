@@ -4,8 +4,8 @@ const { Schema } = mongoose;
 
 const workshopRegistrationSchema = new Schema(
   {
-    workshopId: { type: Schema.Types.ObjectId, ref: 'Workshop', required: true, index: true },
-    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    workshopId: { type: Schema.Types.ObjectId, ref: 'Workshop', required: true },
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     studentName: { type: String, trim: true },
     studentEmail: { type: String, trim: true },
   },

@@ -26,7 +26,7 @@ const subjectSchema = new Schema(
       index: true,
     },
     aliases: [{ type: String, trim: true }],
-    isPopular: { type: Boolean, default: false, index: true },
+    isPopular: { type: Boolean, default: false },
     sortOrder: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true, index: true },
   },
@@ -34,7 +34,6 @@ const subjectSchema = new Schema(
 );
 
 subjectSchema.index({ name: 'text', aliases: 'text' });
-subjectSchema.index({ name: 1 });
 subjectSchema.index({ isPopular: -1, sortOrder: 1, name: 1 });
 
 export default mongoose.model('Subject', subjectSchema);
