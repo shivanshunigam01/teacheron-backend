@@ -30,6 +30,13 @@ import {
   adminSubjectListQuerySchema,
   adminSubjectStatusSchema,
 } from '../validators/subject.validator.js';
+import * as accommodationInquiry from '../controllers/accommodationInquiry.controller.js';
+import {
+  adminAccommodationInquiryListSchema,
+  adminAccommodationInquiryStatusSchema,
+  accommodationInquiryIdParamSchema,
+  accommodationInquiryMessageSchema,
+} from '../validators/accommodationInquiry.validator.js';
 
 const r = Router();
 r.use(verifyJWT, requireRole('admin'));
@@ -73,5 +80,26 @@ r.patch('/requirements/:id/reject', validate(adminRejectRequirementSchema), requ
 
 r.get('/subjects', validate(adminSubjectListQuerySchema), subject.adminList);
 r.patch('/subjects/:id/status', validate(adminSubjectStatusSchema), subject.adminUpdateStatus);
+
+r.get(
+  '/accommodation-inquiries',
+  validate(adminAccommodationInquiryListSchema),
+  accommodationInquiry.adminList,
+);
+r.get(
+  '/accommodation-inquiries/:id',
+  validate(accommodationInquiryIdParamSchema),
+  accommodationInquiry.adminGetById,
+);
+r.post(
+  '/accommodation-inquiries/:id/messages',
+  validate(accommodationInquiryMessageSchema),
+  accommodationInquiry.adminReply,
+);
+r.patch(
+  '/accommodation-inquiries/:id/status',
+  validate(adminAccommodationInquiryStatusSchema),
+  accommodationInquiry.adminUpdateStatus,
+);
 
 export default r;

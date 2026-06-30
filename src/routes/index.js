@@ -22,6 +22,7 @@ import workshopRoutes from './workshop.routes.js';
 import teacherRoutes from './teacher.routes.js';
 import tutorRoutes from './tutor.routes.js';
 import subjectRoutes from './subject.routes.js';
+import accommodationInquiryRoutes from './accommodationInquiry.routes.js';
 import { dbState } from '../config/db.js';
 
 const DEPLOYED_AT = new Date().toISOString();
@@ -69,5 +70,6 @@ router.use('/workshops', workshopRoutes);
 router.use('/teacher', teacherRoutes);
 router.use('/tutors', tutorRoutes);
 router.use('/subjects', subjectRoutes);
+router.use('/accommodation-inquiries', accommodationInquiryRoutes);
 
 export default router;
