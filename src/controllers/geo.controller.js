@@ -9,15 +9,7 @@ import {
   getCurrencyForCountryCode,
   getCurrencySymbol,
 } from '../utils/currencyFromCountry.js';
-
-function clientIpFromRequest(req) {
-  const xf = req.headers['x-forwarded-for'];
-  if (typeof xf === 'string' && xf.trim()) {
-    return xf.split(',')[0].trim();
-  }
-  const ip = req.ip || req.socket?.remoteAddress || '';
-  return ip.replace(/^::ffff:/, '');
-}
+import { resolveGeoLookupIp } from '../utils/resolveGeoIp.js';
 
 async function geoFetch(url) {
   if (!env.geoapifyApiKey) return null;
@@ -26,26 +18,47 @@ async function geoFetch(url) {
   return r.json();
 }
 
+function geoapifyIpUrl(ip) {
+  const base = `https://api.geoapify.com/v1/ipinfo?apiKey=${env.geoapifyApiKey}`;
+  return ip ? `${base}&ip=${encodeURIComponent(ip)}` : base;
+}
+
 export const ip = asyncHandler(async (req, res) => {
   if (!env.geoapifyApiKey) {
     res.set('X-Location-Source', 'disabled');
     return ApiResponse.ok(res, { location: null, geoapify: null }, 'Geo not configured');
   }
 
-  const clientIp = clientIpFromRequest(req);
-  const isLocal = !clientIp || clientIp === '127.0.0.1' || clientIp === '::1';
-  const url = isLocal
-    ? `https://api.geoapify.com/v1/ipinfo?apiKey=${env.geoapifyApiKey}`
-    : `https://api.geoapify.com/v1/ipinfo?ip=${encodeURIComponent(clientIp)}&apiKey=${env.geoapifyApiKey}`;
+  const { ip: lookupIp, source } = resolveGeoLookupIp(req);
 
-  const raw = await geoFetch(url);
+  if (!lookupIp) {
+    res.set('Cache-Control', 'no-store');
+    res.set('X-Location-Source', 'none');
+    return ApiResponse.ok(
+      res,
+      {
+        location: null,
+        geoapify: null,
+        resolvedIp: null,
+        ipSource: source,
+      },
+      'Could not resolve client IP — pass ?ip= from browser or connect directly',
+    );
+  }
+
+  const raw = await geoFetch(geoapifyIpUrl(lookupIp));
   const location = parseGeoapifyIpResponse(raw);
 
-  res.set('Cache-Control', 'private, max-age=300');
+  res.set('Cache-Control', 'no-store');
   res.set('X-Location-Source', 'geoapify-ip');
-  if (clientIp && !isLocal) res.set('X-Client-IP', clientIp);
+  res.set('X-Client-IP', lookupIp);
+  res.set('X-IP-Source', source);
 
-  ApiResponse.ok(res, { location, geoapify: raw }, 'Location fetched');
+  ApiResponse.ok(
+    res,
+    { location, geoapify: raw, resolvedIp: lookupIp, ipSource: source },
+    'Location fetched',
+  );
 });
 
 export const reverse = asyncHandler(async (req, res) => {
@@ -64,7 +77,7 @@ export const reverse = asyncHandler(async (req, res) => {
   );
   const location = parseGeoapifyReverseResponse(raw);
 
-  res.set('Cache-Control', 'private, max-age=300');
+  res.set('Cache-Control', 'no-store');
   res.set('X-Location-Source', 'geoapify-reverse');
   ApiResponse.ok(res, { location, geoapify: raw }, 'Location fetched');
 });
@@ -101,19 +114,33 @@ export const currency = asyncHandler(async (req, res) => {
     );
   }
 
-  const clientIp = clientIpFromRequest(req);
-  const isLocal = !clientIp || clientIp === '127.0.0.1' || clientIp === '::1';
-  const url = isLocal
-    ? `https://api.geoapify.com/v1/ipinfo?apiKey=${env.geoapifyApiKey}`
-    : `https://api.geoapify.com/v1/ipinfo?ip=${encodeURIComponent(clientIp)}&apiKey=${env.geoapifyApiKey}`;
+  const { ip: lookupIp, source } = resolveGeoLookupIp(req);
 
-  const raw = await geoFetch(url);
+  if (!lookupIp) {
+    return ApiResponse.ok(
+      res,
+      {
+        countryCode: null,
+        country: null,
+        currency: 'USD',
+        symbol: getCurrencySymbol('USD'),
+        source: 'default',
+        resolvedIp: null,
+        ipSource: source,
+      },
+      'Could not resolve client IP',
+    );
+  }
+
+  const raw = await geoFetch(geoapifyIpUrl(lookupIp));
   const location = parseGeoapifyIpResponse(raw);
   const countryCode = location?.countryCode || null;
   const currencyCode = countryCode ? getCurrencyForCountryCode(countryCode) : 'USD';
 
-  res.set('Cache-Control', 'private, max-age=300');
+  res.set('Cache-Control', 'no-store');
   res.set('X-Location-Source', 'geoapify-ip');
+  res.set('X-Client-IP', lookupIp);
+  res.set('X-IP-Source', source);
 
   ApiResponse.ok(
     res,
@@ -123,6 +150,8 @@ export const currency = asyncHandler(async (req, res) => {
       currency: currencyCode,
       symbol: getCurrencySymbol(currencyCode),
       source: countryCode ? 'ip' : 'default',
+      resolvedIp: lookupIp,
+      ipSource: source,
     },
     'Currency fetched',
   );
