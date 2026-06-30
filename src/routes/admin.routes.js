@@ -30,6 +30,13 @@ import {
   adminSubjectListQuerySchema,
   adminSubjectStatusSchema,
 } from '../validators/subject.validator.js';
+import {
+  adminProposalListQuerySchema,
+  adminProposalReviewSchema,
+  adminProposalRejectSchema,
+  proposalIdParamSchema,
+} from '../validators/proposal.validator.js';
+import * as proposal from '../controllers/proposal.controller.js';
 import * as accommodationInquiry from '../controllers/accommodationInquiry.controller.js';
 import {
   adminAccommodationInquiryListSchema,
@@ -101,5 +108,10 @@ r.patch(
   validate(adminAccommodationInquiryStatusSchema),
   accommodationInquiry.adminUpdateStatus,
 );
+
+r.get('/job-applications', validate(adminProposalListQuerySchema), proposal.adminList);
+r.get('/job-applications/:id', validate(proposalIdParamSchema), proposal.adminGetById);
+r.patch('/job-applications/:id/approve', validate(adminProposalReviewSchema), proposal.adminApprove);
+r.patch('/job-applications/:id/reject', validate(adminProposalRejectSchema), proposal.adminReject);
 
 export default r;

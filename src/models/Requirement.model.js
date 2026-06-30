@@ -48,6 +48,7 @@ const requirementSchema = new Schema(
     adminRemark: { type: String, default: '' },
     approvedAt: Date,
     rejectedAt: Date,
+    assignedTeacherId: { type: Schema.Types.ObjectId, ref: 'User', index: true },
   },
   { timestamps: true },
 );
