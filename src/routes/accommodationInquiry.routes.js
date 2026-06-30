@@ -11,6 +11,7 @@ const r = Router();
 
 r.use(verifyJWT, requireRole('student', 'teacher', 'admin'));
 
+r.get('/me', requireRole('student', 'teacher'), c.listMine);
 r.get('/by-accommodation/:accommodationId', c.getByAccommodation);
 r.post(
   '/by-accommodation/:accommodationId/messages',

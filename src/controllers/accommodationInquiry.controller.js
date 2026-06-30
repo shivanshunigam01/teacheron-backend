@@ -23,6 +23,14 @@ async function loadUserProfile(userId) {
   return User.findById(userId).select('name email phone role').lean();
 }
 
+export const listMine = asyncHandler(async (req, res) => {
+  const items = await AccommodationInquiry.find({ userId: req.user.id })
+    .sort({ updatedAt: -1 })
+    .lean();
+
+  ApiResponse.ok(res, { items: toJSONList(items) }, 'Inquiries fetched');
+});
+
 export const getByAccommodation = asyncHandler(async (req, res) => {
   const thread = await AccommodationInquiry.findOne({
     userId: req.user.id,
