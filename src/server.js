@@ -28,7 +28,7 @@ if (isCloudinaryConfigured()) {
 const server = app.listen(env.PORT, () => {
   logger.info(`API running on ${env.API_BASE_URL}/api/v1`);
   logger.info('Auth routes: POST /api/v1/auth/register, POST /api/v1/auth/login, GET /api/v1/auth/me');
-  logger.info('Health: GET /api/v1/health and GET /health');
+  logger.info('Health: GET /api/health, GET /health, and GET /api/v1/health');
 
   const google = getGoogleAuthStatus();
   if (google.configured) {

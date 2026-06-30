@@ -46,7 +46,7 @@ app.use(
   express.static(path.join(path.dirname(fileURLToPath(import.meta.url)), '../assets/email')),
 );
 
-app.get('/health', async (req, res) => {
+async function healthHandler(req, res) {
   const smtp = await getSmtpStatus();
   res.json({
     success: true,
@@ -76,7 +76,10 @@ app.get('/health', async (req, res) => {
     googleAuth: getGoogleAuthStatus(),
     welcomeEmail: 'Sent on student/teacher signup when SMTP is configured',
   });
-});
+}
+
+app.get('/health', healthHandler);
+app.get('/api/health', healthHandler);
 
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
