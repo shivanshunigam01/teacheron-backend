@@ -3,7 +3,9 @@
  * Expand over time toward 18,000+ entries via admin import or additional seed batches.
  */
 
-function slugify(name) {
+import { WORLD_CATALOG_EXTRA } from './subjects.catalog-world.js';
+
+export function slugify(name) {
   return name
     .toLowerCase()
     .replace(/&/g, 'and')
@@ -519,8 +521,9 @@ const POPULAR_ORDER = [
 function buildCatalog() {
   const seen = new Set();
   const rows = [];
+  const allGroups = { ...CATALOG_GROUPS, ...WORLD_CATALOG_EXTRA };
 
-  for (const [group, { names, aliases = {} }] of Object.entries(CATALOG_GROUPS)) {
+  for (const [group, { names, aliases = {} }] of Object.entries(allGroups)) {
     names.forEach((name, index) => {
       const key = name.toLowerCase();
       if (seen.has(key)) return;

@@ -25,6 +25,11 @@ import {
   adminListRequirementsQuerySchema,
   adminRejectRequirementSchema,
 } from '../validators/requirement.validator.js';
+import * as subject from '../controllers/subject.controller.js';
+import {
+  adminSubjectListQuerySchema,
+  adminSubjectStatusSchema,
+} from '../validators/subject.validator.js';
 
 const r = Router();
 r.use(verifyJWT, requireRole('admin'));
@@ -65,5 +70,8 @@ r.patch('/teachers/:id/status', validate(adminTeacherStatusSchema), tutorAdmin.u
 r.get('/requirements', validate(adminListRequirementsQuerySchema), requirement.adminList);
 r.patch('/requirements/:id/approve', validate(adminApproveRequirementSchema), requirement.adminApprove);
 r.patch('/requirements/:id/reject', validate(adminRejectRequirementSchema), requirement.adminReject);
+
+r.get('/subjects', validate(adminSubjectListQuerySchema), subject.adminList);
+r.patch('/subjects/:id/status', validate(adminSubjectStatusSchema), subject.adminUpdateStatus);
 
 export default r;

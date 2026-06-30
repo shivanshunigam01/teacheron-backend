@@ -20,6 +20,7 @@ const subjectSchema = new Schema(
         'humanities',
         'medical',
         'law',
+        'sports',
         'other',
       ],
       default: 'academic',
