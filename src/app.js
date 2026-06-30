@@ -21,6 +21,7 @@ import { getEmailClientUrl } from './templates/email/brand.js';
 
 const app = express();
 const API_PREFIX = '/api/v1';
+const DEPLOYED_AT = new Date().toISOString();
 
 app.set('trust proxy', 1);
 
@@ -51,6 +52,8 @@ async function healthHandler(req, res) {
   res.json({
     success: true,
     status: 'ok',
+    version: 'v2',
+    deployedAt: DEPLOYED_AT,
     uptime: process.uptime(),
     db: dbState(),
     smtp,

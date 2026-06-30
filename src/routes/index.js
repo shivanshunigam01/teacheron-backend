@@ -24,11 +24,16 @@ import tutorRoutes from './tutor.routes.js';
 import subjectRoutes from './subject.routes.js';
 import { dbState } from '../config/db.js';
 
+const DEPLOYED_AT = new Date().toISOString();
+
 const router = Router();
 
 router.get('/health', (req, res) =>
   res.json({
     success: true,
+    status: 'ok',
+    version: 'v2',
+    deployedAt: DEPLOYED_AT,
     message: 'TeacherPoint API is running',
     db: dbState(),
     routes: {
