@@ -5,6 +5,7 @@ import { ApiError } from '../utils/ApiError.js';
 import logger from '../config/logger.js';
 
 let client;
+let cachedCredentialKey = '';
 
 function getClient() {
   const { keyId, keySecret } = env.razorpay;
@@ -13,10 +14,42 @@ function getClient() {
       'Razorpay is not configured. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in backend .env',
     );
   }
-  if (!client) {
+  const credentialKey = `${keyId}:${keySecret}`;
+  if (!client || cachedCredentialKey !== credentialKey) {
     client = new Razorpay({ key_id: keyId, key_secret: keySecret });
+    cachedCredentialKey = credentialKey;
   }
   return client;
+}
+
+/** Quick auth check — creates a tiny order and immediately validates credentials. */
+export async function verifyRazorpayConnection() {
+  if (!isRazorpayConfigured()) {
+    logger.warn('Razorpay not configured — set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in backend .env');
+    return false;
+  }
+  try {
+    await getClient().orders.create({
+      amount: 100,
+      currency: 'INR',
+      receipt: `ping_${Date.now()}`,
+    });
+    logger.info(`Razorpay ready (key: ${env.razorpay.keyId})`);
+    return true;
+  } catch (err) {
+    const status = err?.statusCode || err?.error?.statusCode;
+    logger.error('[razorpay] credential check failed', {
+      status,
+      keyId: env.razorpay.keyId,
+      message: err?.error?.description || err?.message,
+    });
+    if (status === 401) {
+      logger.error(
+        'Razorpay authentication failed — regenerate Test/Live API keys in Razorpay Dashboard and update backend .env (and production server .env)',
+      );
+    }
+    return false;
+  }
 }
 
 export function isRazorpayConfigured() {

@@ -6,6 +6,7 @@ import logger from './config/logger.js';
 import { maskMongoUri } from './utils/mongoUri.js';
 import { verifySmtpConnection } from './services/email.service.js';
 import { initCloudinary, isCloudinaryConfigured } from './services/cloudinary.service.js';
+import { verifyRazorpayConnection } from './services/razorpay.service.js';
 import { getGoogleAuthStatus } from './services/googleAuth.service.js';
 
 logger.info(`Starting TeacherPoint API — NODE_ENV=${env.NODE_ENV} PORT=${env.PORT}`);
@@ -19,6 +20,7 @@ logger.info(`Mongo URI detected: ${maskMongoUri(env.MONGO_URI)}`);
 
 await connectDB();
 await verifySmtpConnection();
+await verifyRazorpayConnection();
 if (isCloudinaryConfigured()) {
   initCloudinary();
 } else {
