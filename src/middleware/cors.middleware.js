@@ -1,12 +1,19 @@
 import cors from 'cors';
+import env from '../config/env.js';
 
-/** Allowed browser origins — single source of truth for CORS. */
-export const ALLOWED_ORIGINS = [
+const DEFAULT_ORIGINS = [
   'https://teacherpoint.org',
   'https://www.teacherpoint.org',
   'http://localhost:3000',
+  'http://localhost:3001',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:3001',
   'http://localhost:5173',
+  'http://127.0.0.1:5173',
 ];
+
+/** Allowed browser origins — defaults plus CORS_ORIGINS from backend/.env */
+export const ALLOWED_ORIGINS = [...new Set([...DEFAULT_ORIGINS, ...env.corsOrigins])];
 
 export const corsOptions = {
   origin(origin, callback) {

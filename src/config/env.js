@@ -72,7 +72,7 @@ const env = {
   maxFileSizeMb: Number(process.env.MAX_FILE_SIZE_MB || 10),
   geoapifyApiKey: process.env.GEOAPIFY_API_KEY || '',
   rateLimitWindowMs: Number(process.env.RATE_LIMIT_WINDOW_MS || 900000),
-  rateLimitMax: Number(process.env.RATE_LIMIT_MAX || 200),
+  rateLimitMax: Number(process.env.RATE_LIMIT_MAX || 2000),
   smtp: {
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
     port: Number(process.env.SMTP_PORT || 587),
