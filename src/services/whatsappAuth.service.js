@@ -153,7 +153,7 @@ async function assertRecentlyVerified(phone, purpose) {
 export async function findUserByPhone(phoneE164) {
   const local = phoneE164ToLocal(phoneE164);
   return User.findOne({
-    $or: [{ phoneE164: phoneE164 }, { phone: local, phoneCountryCode: phoneE164ToCountryCode() }],
+    $or: [{ phoneE164: phoneE164 }, { phone: local, phoneCountryCode: phoneE164ToCountryCode(phoneE164) }],
     isActive: { $ne: false },
   });
 }
@@ -174,7 +174,7 @@ export async function loginWithVerifiedPhone(rawPhone) {
   if (!user.phoneE164) {
     user.phoneE164 = phone;
     user.phone = phoneE164ToLocal(phone);
-    user.phoneCountryCode = phoneE164ToCountryCode();
+    user.phoneCountryCode = phoneE164ToCountryCode(phone);
     if (!user.phoneVerifiedAt) user.phoneVerifiedAt = new Date();
     await user.save();
   }
@@ -197,7 +197,7 @@ export async function signupWithVerifiedPhone({ name, phone: rawPhone, role }) {
     provider: 'whatsapp',
     role,
     phone: phoneE164ToLocal(phone),
-    phoneCountryCode: phoneE164ToCountryCode(),
+    phoneCountryCode: phoneE164ToCountryCode(phone),
     phoneE164: phone,
     phoneVerifiedAt: new Date(),
     isVerified: true,
