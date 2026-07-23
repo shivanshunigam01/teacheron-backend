@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import * as c from '../controllers/proposal.controller.js';
-import { verifyJWT, requireRole } from '../middleware/auth.middleware.js';
+import { verifyJWT, requireRole, requireProfileComplete } from '../middleware/auth.middleware.js';
 import { validate } from '../middleware/validate.middleware.js';
 import {
   createProposalSchema,
@@ -9,7 +9,7 @@ import {
 
 const r = Router();
 
-r.use(verifyJWT);
+r.use(verifyJWT, requireProfileComplete);
 
 r.get('/me', requireRole('teacher'), c.myApplications);
 r.get(

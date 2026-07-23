@@ -1,6 +1,14 @@
 import { escapeHtml } from './escapeHtml.js';
 import { wrapEmail, emailButton, emailButtonOutline, featureList, sectionHeading } from './baseLayout.js';
-import { getCourseDetailUrl, getCoursesCatalogUrl, getLoginUrl, getProfileUrl, getTeacherDashboardUrl, normalizeEmailAssetUrl } from './brand.js';
+import {
+  getCourseDetailUrl,
+  getCoursesCatalogUrl,
+  getLoginUrl,
+  getStudentDashboardUrl,
+  getTeacherDashboardUrl,
+  getParentDashboardUrl,
+  normalizeEmailAssetUrl,
+} from './brand.js';
 
 const PRIMARY = '#6366f1';
 const BORDER = '#e2e8f0';
@@ -8,11 +16,11 @@ const MUTED = '#64748b';
 
 const copy = {
   student: {
-    subject: 'Welcome to TeacherPoint — your courses await',
-    preheader: 'Your account is ready. Browse courses and start learning today.',
+    subject: 'Welcome to TeacherPoint — your profile is ready',
+    preheader: 'Your student profile is complete. Browse courses and start learning today.',
     headline: 'Welcome aboard, learner!',
     intro:
-      'Thanks for joining TeacherPoint. Your student account is active — explore expert-led courses, connect with tutors, and start learning at your own pace.',
+      'Thanks for completing your TeacherPoint student profile. Your account is fully active — explore expert-led courses, connect with tutors, and start learning at your own pace.',
     coursesHeading: 'Popular courses for you',
     coursesEmpty:
       'New courses are added every week. Browse our full catalog to find subjects that match your goals.',
@@ -20,19 +28,19 @@ const copy = {
       'Enroll in live and self-paced courses',
       'Track progress and earn certificates',
       'Message tutors and join the Student Exchange',
-      'Complete your profile for better recommendations',
+      'Post tutoring requirements and find the right match',
     ],
     coursesCta: 'Browse all courses',
-    profileCta: 'Complete your profile',
+    profileCta: 'Open student dashboard',
     roleLabel: 'student',
     courseBtn: 'View course',
   },
   teacher: {
     subject: 'Welcome to TeacherPoint — grow your teaching practice',
-    preheader: 'Your tutor account is live. See what learners are studying on the platform.',
+    preheader: 'Your tutor profile is live. Reach students who need your expertise.',
     headline: 'Welcome aboard, tutor!',
     intro:
-      'Thanks for joining TeacherPoint. Your tutor account is ready — build your profile, publish courses, and connect with students who need your expertise.',
+      'Thanks for completing your TeacherPoint tutor profile. You are ready to publish courses, set rates, and connect with students worldwide.',
     coursesHeading: 'Featured courses on the platform',
     coursesEmpty:
       'Explore the course catalog to see what students enroll in — then create your own offerings.',
@@ -43,8 +51,28 @@ const copy = {
       'Get verified to build trust with new learners',
     ],
     coursesCta: 'Explore all courses',
-    profileCta: 'Set up your tutor profile',
+    profileCta: 'Open tutor dashboard',
     roleLabel: 'tutor',
+    courseBtn: 'View course',
+  },
+  parent: {
+    subject: 'Welcome to TeacherPoint — find the right tutor for your child',
+    preheader: 'Your parent profile is complete. Post requirements and browse tutors.',
+    headline: 'Welcome aboard, parent!',
+    intro:
+      'Thanks for completing your TeacherPoint parent profile. You can now post tutoring needs, browse verified tutors, and support your child’s learning journey.',
+    coursesHeading: 'Popular courses families explore',
+    coursesEmpty:
+      'Browse our catalog for courses that complement one-to-one tutoring for your child.',
+    features: [
+      'Post tutoring requirements for your child',
+      'Browse and shortlist verified tutors',
+      'Track applications and messages in one place',
+      'Manage payments securely through TeacherPoint',
+    ],
+    coursesCta: 'Browse courses',
+    profileCta: 'Open parent dashboard',
+    roleLabel: 'parent',
     courseBtn: 'View course',
   },
 };
@@ -108,12 +136,17 @@ function courseListSection(courses, heading, btnLabel) {
 }
 
 /**
- * @param {{ name: string; email: string; role: 'student' | 'teacher'; courses?: Array<object> }} params
+ * @param {{ name: string; email: string; role: 'student' | 'teacher' | 'parent'; courses?: Array<object> }} params
  */
 export function buildWelcomeEmail({ name, email, role, courses = [] }) {
   const content = copy[role] ?? copy.student;
   const coursesUrl = getCoursesCatalogUrl();
-  const profileUrl = role === 'teacher' ? getTeacherDashboardUrl() : getProfileUrl();
+  const profileUrl =
+    role === 'teacher'
+      ? getTeacherDashboardUrl()
+      : role === 'parent'
+        ? getParentDashboardUrl()
+        : getStudentDashboardUrl();
   const loginUrl = getLoginUrl();
   const safeName = escapeHtml(name);
   const safeEmail = escapeHtml(email);

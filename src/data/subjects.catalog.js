@@ -4,10 +4,13 @@
  */
 
 import { WORLD_CATALOG_EXTRA } from './subjects.catalog-world.js';
+import { TOP_SUBJECTS_AND_SKILLS, topSubjectGroup } from './subjects.catalog-top.js';
 
 export function slugify(name) {
-  return name
-    .toLowerCase()
+  let s = String(name || '').toLowerCase().trim();
+  // Preserve leading dots (e.g. ".net" → "dot-net") so they don't collide with "NET".
+  if (s.startsWith('.')) s = `dot-${s.replace(/^\.+/, '')}`;
+  return s
     .replace(/&/g, 'and')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
@@ -488,40 +491,70 @@ const CATALOG_GROUPS = {
 };
 
 const POPULAR_SUBJECTS = new Set([
+  ...TOP_SUBJECTS_AND_SKILLS,
   'Mathematics',
-  'Physics',
-  'Python',
   'NEET',
   'Spoken English',
-  'Chemistry',
-  'Biology',
-  'English',
-  'Computer Science',
-  'IELTS',
   'JEE Main',
-  'Statistics',
-  'Economics',
   'Hindi',
-  'French',
 ]);
 
+/** TeacherOn top list first, then classic tutoring staples. */
 const POPULAR_ORDER = [
+  ...TOP_SUBJECTS_AND_SKILLS,
   'Mathematics',
-  'Physics',
-  'Python',
   'NEET',
   'Spoken English',
-  'Chemistry',
-  'Biology',
-  'English',
-  'Computer Science',
-  'IELTS',
+  'JEE Main',
+  'Hindi',
 ];
+
+function mergeCatalogGroups(...groupMaps) {
+  /** @type {Record<string, { names: string[], aliases: Record<string, string[]> }>} */
+  const merged = {};
+
+  for (const map of groupMaps) {
+    if (!map) continue;
+    for (const [group, value] of Object.entries(map)) {
+      if (!merged[group]) {
+        merged[group] = { names: [], aliases: {} };
+      }
+      const names = value?.names || [];
+      const aliases = value?.aliases || {};
+      for (const name of names) {
+        if (!merged[group].names.some((n) => n.toLowerCase() === name.toLowerCase())) {
+          merged[group].names.push(name);
+        }
+      }
+      for (const [key, aliasList] of Object.entries(aliases)) {
+        const existing = merged[group].aliases[key] || [];
+        const next = [...existing];
+        for (const a of aliasList || []) {
+          if (!next.some((x) => x.toLowerCase() === String(a).toLowerCase())) next.push(a);
+        }
+        merged[group].aliases[key] = next;
+      }
+    }
+  }
+
+  return merged;
+}
 
 function buildCatalog() {
   const seen = new Set();
   const rows = [];
-  const allGroups = { ...CATALOG_GROUPS, ...WORLD_CATALOG_EXTRA };
+
+  // Fix: merge world extras into groups instead of overwriting entire groups.
+  const allGroups = mergeCatalogGroups(CATALOG_GROUPS, WORLD_CATALOG_EXTRA);
+
+  // Ensure every TeacherOn top subject/skill exists (even if missing from group catalogs).
+  for (const name of TOP_SUBJECTS_AND_SKILLS) {
+    const group = topSubjectGroup(name);
+    if (!allGroups[group]) allGroups[group] = { names: [], aliases: {} };
+    if (!allGroups[group].names.some((n) => n.toLowerCase() === name.toLowerCase())) {
+      allGroups[group].names.push(name);
+    }
+  }
 
   for (const [group, { names, aliases = {} }] of Object.entries(allGroups)) {
     names.forEach((name, index) => {
@@ -529,14 +562,14 @@ function buildCatalog() {
       if (seen.has(key)) return;
       seen.add(key);
 
-      const popularIndex = POPULAR_ORDER.indexOf(name);
+      const popularIndex = POPULAR_ORDER.findIndex((n) => n.toLowerCase() === key);
       rows.push({
         name,
         slug: slugify(name),
         group,
         aliases: aliases[name] ?? [],
-        isPopular: POPULAR_SUBJECTS.has(name),
-        sortOrder: popularIndex >= 0 ? popularIndex : 100 + index,
+        isPopular: POPULAR_SUBJECTS.has(name) || popularIndex >= 0,
+        sortOrder: popularIndex >= 0 ? popularIndex : 1000 + index,
       });
     });
   }
@@ -547,3 +580,4 @@ function buildCatalog() {
 export const SUBJECT_CATALOG = buildCatalog();
 export const SUBJECT_CATALOG_COUNT = SUBJECT_CATALOG.length;
 export const POPULAR_SUBJECT_NAMES = POPULAR_ORDER;
+export { TOP_SUBJECTS_AND_SKILLS };

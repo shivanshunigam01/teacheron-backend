@@ -154,6 +154,14 @@ export function getProfileUrl() {
   return `${getEmailClientUrl()}/profile`;
 }
 
+export function getStudentDashboardUrl() {
+  return `${getEmailClientUrl()}/student`;
+}
+
 export function getTeacherDashboardUrl() {
   return `${getEmailClientUrl()}/teacher`;
+}
+
+export function getParentDashboardUrl() {
+  return `${getEmailClientUrl()}/parent`;
 }

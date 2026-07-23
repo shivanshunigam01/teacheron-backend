@@ -37,7 +37,7 @@ export async function fetchPublishedCoursesForWelcome() {
 }
 
 /**
- * @param {{ name: string; email: string; role: 'student' | 'teacher' }} params
+ * @param {{ name: string; email: string; role: 'student' | 'teacher' | 'parent' }} params
  * @returns {Promise<{ sent: boolean; stub?: boolean; courseCount: number; error?: string }>}
  */
 export async function sendWelcomeEmail({ name, email, role }) {

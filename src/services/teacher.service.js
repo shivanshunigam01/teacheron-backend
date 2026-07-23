@@ -3,7 +3,9 @@ import { ApiError } from '../utils/ApiError.js';
 import { computeTeacherProfileProgress } from '../utils/profileComplete.js';
 import { toJSON } from '../utils/serialize.js';
 import { applyTeacherProfileToUser, normalizeTeacherProfilePayload } from '../utils/teacherProfile.js';
-import { sendTeacherWelcomeIfReady } from './emailVerification.service.js';
+import { sendWelcomeIfReady } from './emailVerification.service.js';
+import { ensureSubjectNames } from './subject.service.js';
+import logger from '../config/logger.js';
 
 function normalizePayload(body = {}) {
   const teacherProfile = body.teacherProfile ? { ...body.teacherProfile } : {};
@@ -51,11 +53,22 @@ export async function upsertTeacherProfile(userId, body) {
   const wasComplete = user.profileComplete;
   applyTeacherProfileToUser(user, teacherProfile || {}, { avatarUrl });
 
+  // Grow the subjects/skills master with any new teaching subject names.
+  try {
+    const names = [
+      ...(user.teacherProfile?.teachingSubjects || []).map((s) => s?.name),
+      ...(user.teacherProfile?.subjects || []),
+    ].filter(Boolean);
+    await ensureSubjectNames(names);
+  } catch (err) {
+    logger.warn(`[subjects] ensure on teacher profile failed: ${err.message}`);
+  }
+
   await user.save();
 
   let welcomeEmailSent = false;
-  if (user.profileComplete && !wasComplete) {
-    const welcome = await sendTeacherWelcomeIfReady(user);
+  if (user.profileComplete && (!wasComplete || !user.welcomeEmailSent)) {
+    const welcome = await sendWelcomeIfReady(user);
     welcomeEmailSent = Boolean(welcome.sent);
   }
 

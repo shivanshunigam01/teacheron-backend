@@ -6,6 +6,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { getPagination, paginationMeta } from '../utils/pagination.js';
 import { toJSON, toJSONList } from '../utils/serialize.js';
 import { isValidSubjectName, normalizeSubjectName } from '../utils/subjectName.js';
+import { ensureSubjectByName, findSubjectByName } from '../services/subject.service.js';
 
 function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -32,16 +33,6 @@ function buildListFilter(query, { admin = false } = {}) {
   return { q, filter };
 }
 
-async function findSubjectByName(name) {
-  const normalized = normalizeSubjectName(name);
-  const slug = slugify(normalized);
-  const regex = new RegExp(`^${escapeRegex(normalized)}$`, 'i');
-
-  return Subject.findOne({
-    $or: [{ slug }, { name: regex }, { aliases: regex }],
-  });
-}
-
 export const list = asyncHandler(async (req, res) => {
   const { page, limit, skip } = getPagination(req.query);
   const { q, filter } = buildListFilter(req.query);
@@ -62,7 +53,7 @@ export const list = asyncHandler(async (req, res) => {
 });
 
 export const popular = asyncHandler(async (req, res) => {
-  const limit = Math.min(30, Math.max(1, parseInt(req.query.limit, 10) || 12));
+  const limit = Math.min(60, Math.max(1, parseInt(req.query.limit, 10) || 12));
   const items = await Subject.find({ isActive: true, isPopular: true })
     .sort({ sortOrder: 1, name: 1 })
     .limit(limit)
@@ -90,22 +81,10 @@ export const ensure = asyncHandler(async (req, res) => {
     return;
   }
 
-  const slug = slugify(name);
-  const slugTaken = await Subject.findOne({ slug }).lean();
-  if (slugTaken) {
-    ApiResponse.ok(res, toJSON(slugTaken), 'Subject found');
-    return;
+  const item = await ensureSubjectByName(name);
+  if (!item) {
+    throw ApiError.badRequest('Please enter a valid subject or skill name');
   }
-
-  const item = await Subject.create({
-    name,
-    slug,
-    group: 'other',
-    aliases: [],
-    isPopular: false,
-    sortOrder: 9000,
-    isActive: true,
-  });
 
   ApiResponse.created(res, toJSON(item), 'Subject added');
 });

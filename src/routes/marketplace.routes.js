@@ -1,2 +1,13 @@
-import {Router} from 'express';import * as c from '../controllers/marketplace.controller.js';import {verifyJWT,requireRole} from '../middleware/auth.middleware.js';const r=Router();
-r.get('/',c.list);r.post('/',verifyJWT,c.create);r.get('/:id',c.getById);r.patch('/:id',verifyJWT,c.update);r.delete('/:id',verifyJWT,c.remove);export default r;
+import { Router } from 'express';
+import * as c from '../controllers/marketplace.controller.js';
+import { verifyJWT, requireProfileComplete } from '../middleware/auth.middleware.js';
+
+const r = Router();
+
+r.get('/', c.list);
+r.post('/', verifyJWT, requireProfileComplete, c.create);
+r.get('/:id', c.getById);
+r.patch('/:id', verifyJWT, requireProfileComplete, c.update);
+r.delete('/:id', verifyJWT, requireProfileComplete, c.remove);
+
+export default r;

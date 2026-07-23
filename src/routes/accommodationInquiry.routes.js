@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import * as c from '../controllers/accommodationInquiry.controller.js';
-import { verifyJWT, requireRole } from '../middleware/auth.middleware.js';
+import { verifyJWT, requireRole, requireProfileComplete } from '../middleware/auth.middleware.js';
 import { validate } from '../middleware/validate.middleware.js';
 import {
   accommodationInquiryIdParamSchema,
@@ -9,7 +9,7 @@ import {
 
 const r = Router();
 
-r.use(verifyJWT, requireRole('student', 'teacher', 'admin'));
+r.use(verifyJWT, requireRole('student', 'teacher', 'admin'), requireProfileComplete);
 
 r.get('/me', requireRole('student', 'teacher'), c.listMine);
 r.get('/by-accommodation/:accommodationId', c.getByAccommodation);

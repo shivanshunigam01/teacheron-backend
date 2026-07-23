@@ -14,8 +14,7 @@ import {
   issueEmailVerificationOtp,
   verifyEmailOtp,
   resendEmailVerificationOtp,
-  sendTeacherWelcomeIfReady,
-  sendStudentWelcomeIfReady,
+  sendWelcomeIfReady,
 } from '../services/emailVerification.service.js';
 import logger from '../config/logger.js';
 import { computeProfileComplete, initialsFromName } from '../utils/profileComplete.js';
@@ -152,23 +151,14 @@ export const verifyEmail = asyncHandler(async (req, res) => {
   }
 
   const refreshed = await User.findById(user._id);
-  const extra = {};
-
-  if (refreshed.role === 'student') {
-    const welcome = await sendStudentWelcomeIfReady(refreshed);
-    extra.welcomeEmailSent = Boolean(welcome.sent);
-  }
-
   const message =
     refreshed.role === 'teacher'
       ? 'Email verified — complete your tutor profile to continue'
       : refreshed.role === 'parent'
         ? 'Email verified — complete your parent profile to continue'
-        : extra.welcomeEmailSent
-          ? 'Email verified — welcome email sent with course highlights'
-          : 'Email verified — you can complete your profile and explore courses';
+        : 'Email verified — complete your student profile to continue';
 
-  ApiResponse.ok(res, await authPayload(refreshed, extra), message);
+  ApiResponse.ok(res, await authPayload(refreshed), message);
 });
 
 export const resendVerification = asyncHandler(async (req, res) => {
@@ -388,17 +378,24 @@ export const updateProfile = asyncHandler(async (req, res) => {
 
   if (user.role === 'teacher' && teacherProfile) {
     const { upsertTeacherProfile } = await import('../services/teacher.service.js');
-    const { user: updated, welcomeEmailSent } = await upsertTeacherProfile(user, {
+    // upsertTeacherProfile expects (userId, body) and returns a flat user JSON + progress
+    const updated = await upsertTeacherProfile(userId(user), {
       name,
       phone,
       phoneCountryCode,
       avatarUrl,
       teacherProfile,
     });
-    const json = await withHasPassword(updated);
+    const { progress, welcomeEmailSent, ...userJson } = updated;
+    const json = await withHasPassword(userJson);
     return ApiResponse.ok(
       res,
-      { ...json, welcomeEmailSent, requiresEmailVerification: false },
+      {
+        ...json,
+        progress,
+        welcomeEmailSent: Boolean(welcomeEmailSent),
+        requiresEmailVerification: false,
+      },
       welcomeEmailSent ? 'Profile complete — welcome email sent' : 'Profile updated',
     );
   }
@@ -430,8 +427,8 @@ export const updateProfile = asyncHandler(async (req, res) => {
   await user.save();
 
   let welcomeEmailSent = false;
-  if (user.role === 'teacher' && user.profileComplete && !wasComplete) {
-    const welcome = await sendTeacherWelcomeIfReady(user);
+  if (user.profileComplete && (!wasComplete || !user.welcomeEmailSent)) {
+    const welcome = await sendWelcomeIfReady(user);
     welcomeEmailSent = Boolean(welcome.sent);
   }
 

@@ -1,7 +1,6 @@
 import User from '../models/User.model.js';
 import { ApiError } from '../utils/ApiError.js';
 import { computeProfileComplete, initialsFromName } from '../utils/profileComplete.js';
-import { sendStudentWelcomeIfReady } from '../services/emailVerification.service.js';
 
 const SELF_SERVE_ROLES = ['student', 'teacher', 'parent'];
 
@@ -18,6 +17,7 @@ function buildTeacherProfile(name) {
 /**
  * Find an existing user by email or create a Google-authenticated account.
  * Google users do not require a password.
+ * Welcome email is sent only after profile registration is complete.
  *
  * @param {{ googleId: string; email: string; name: string; picture: string }} googleUser
  * @param {{ role?: 'student' | 'teacher' | 'parent' }} options
@@ -25,7 +25,6 @@ function buildTeacherProfile(name) {
 export async function findOrCreateGoogleUser(googleUser, { role } = {}) {
   let user = await User.findOne({ email: googleUser.email }).select('+passwordHash');
   let isNewUser = false;
-  let welcomeEmailSent = false;
 
   if (!user) {
     const resolvedRole = role && SELF_SERVE_ROLES.includes(role) ? role : 'student';
@@ -45,13 +44,10 @@ export async function findOrCreateGoogleUser(googleUser, { role } = {}) {
       parentProfile: resolvedRole === 'parent' ? { children: [] } : undefined,
     });
     isNewUser = true;
+    user.profileComplete = computeProfileComplete(user);
+    await user.save();
 
-    if (resolvedRole === 'student') {
-      const welcome = await sendStudentWelcomeIfReady(user);
-      welcomeEmailSent = Boolean(welcome.sent);
-    }
-
-    return { user, isNewUser, welcomeEmailSent };
+    return { user, isNewUser, welcomeEmailSent: false };
   }
 
   if (!SELF_SERVE_ROLES.includes(user.role)) {
@@ -77,5 +73,5 @@ export async function findOrCreateGoogleUser(googleUser, { role } = {}) {
   user.profileComplete = computeProfileComplete(user);
   await user.save();
 
-  return { user, isNewUser, welcomeEmailSent };
+  return { user, isNewUser, welcomeEmailSent: false };
 }

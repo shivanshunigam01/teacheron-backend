@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import * as c from '../controllers/requirement.controller.js';
-import { verifyJWT, requireRole, optionalJWT } from '../middleware/auth.middleware.js';
+import { verifyJWT, requireRole, optionalJWT, requireProfileComplete } from '../middleware/auth.middleware.js';
 import { validate } from '../middleware/validate.middleware.js';
 import {
   adminApproveRequirementSchema,
@@ -31,9 +31,9 @@ r.get('/jobs', validate(listJobsQuerySchema), c.listJobs);
  */
 r.get('/facets', c.jobFacets);
 
-r.get('/me', verifyJWT, requireRole('student', 'parent'), c.listMine);
+r.get('/me', verifyJWT, requireRole('student', 'parent'), requireProfileComplete, c.listMine);
 
-r.post('/', verifyJWT, requireRole('student', 'parent'), validate(createRequirementSchema), c.create);
+r.post('/', verifyJWT, requireRole('student', 'parent'), requireProfileComplete, validate(createRequirementSchema), c.create);
 
 r.get('/:id', optionalJWT, validate(requirementIdParamSchema), c.getById);
 

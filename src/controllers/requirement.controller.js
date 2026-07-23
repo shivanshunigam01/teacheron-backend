@@ -9,8 +9,10 @@ import {
   canViewRequirement,
   createRequirement,
   findRequirementOrThrow,
+  isRequirementOwner,
   rejectRequirement,
   shapeRequirement,
+  POSTER_SELECT,
 } from '../services/requirement.service.js';
 import { sendRequirementApprovedEmail } from '../services/requirementEmail.service.js';
 
@@ -21,13 +23,17 @@ export const listJobs = asyncHandler(async (req, res) => {
   const skip = (page - 1) * limit;
   const filter = buildJobsFilter(req.query);
   const [items, total] = await Promise.all([
-    Requirement.find(filter).sort({ approvedAt: -1, createdAt: -1 }).skip(skip).limit(limit),
+    Requirement.find(filter)
+      .populate('studentId', POSTER_SELECT)
+      .sort({ approvedAt: -1, createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
     Requirement.countDocuments(filter),
   ]);
   ApiResponse.ok(
     res,
     {
-      items: items.map(shapeRequirement),
+      items: items.map((item) => shapeRequirement(item, { includeEmail: false })),
       pagination: paginationMeta(total, page, limit),
     },
     'Tutor jobs fetched',
@@ -68,8 +74,14 @@ export const create = asyncHandler(async (req, res) => {
 
 /** GET /requirements/me — current user's requirements */
 export const listMine = asyncHandler(async (req, res) => {
-  const items = await Requirement.find({ studentId: req.user.id }).sort({ createdAt: -1 });
-  ApiResponse.ok(res, { items: items.map(shapeRequirement) }, 'Your requirements fetched');
+  const items = await Requirement.find({ studentId: req.user.id })
+    .populate('studentId', POSTER_SELECT)
+    .sort({ createdAt: -1 });
+  ApiResponse.ok(
+    res,
+    { items: items.map((item) => shapeRequirement(item, { includeEmail: true })) },
+    'Your requirements fetched',
+  );
 });
 
 /** GET /requirements/:id */
@@ -78,7 +90,9 @@ export const getById = asyncHandler(async (req, res) => {
   if (!canViewRequirement(item, req.user)) {
     throw ApiError.notFound('Requirement not found');
   }
-  ApiResponse.ok(res, shapeRequirement(item), 'Requirement fetched');
+  const includeEmail =
+    req.user?.role === 'admin' || isRequirementOwner(item, req.user);
+  ApiResponse.ok(res, shapeRequirement(item, { includeEmail }), 'Requirement fetched');
 });
 
 /** GET /admin/requirements */
@@ -92,14 +106,18 @@ export const adminList = asyncHandler(async (req, res) => {
   // status === 'all' → no status filter
 
   const [items, total] = await Promise.all([
-    Requirement.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+    Requirement.find(filter)
+      .populate('studentId', POSTER_SELECT)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
     Requirement.countDocuments(filter),
   ]);
 
   ApiResponse.ok(
     res,
     {
-      items: items.map(shapeRequirement),
+      items: items.map((item) => shapeRequirement(item, { includeEmail: true })),
       pagination: paginationMeta(total, page, limit),
     },
     'Requirements fetched',
@@ -124,7 +142,7 @@ export const adminApprove = asyncHandler(async (req, res) => {
 
   ApiResponse.ok(
     res,
-    { ...shapeRequirement(item), emailSent: emailResult.sent },
+    { ...shapeRequirement(item, { includeEmail: true }), emailSent: emailResult.sent },
     emailResult.sent
       ? 'Requirement approved — student notified by email'
       : 'Requirement approved',
@@ -134,5 +152,5 @@ export const adminApprove = asyncHandler(async (req, res) => {
 /** PATCH /admin/requirements/:id/reject */
 export const adminReject = asyncHandler(async (req, res) => {
   const item = await rejectRequirement(req.params.id, req.body.adminRemark);
-  ApiResponse.ok(res, shapeRequirement(item), 'Requirement rejected');
+  ApiResponse.ok(res, shapeRequirement(item, { includeEmail: true }), 'Requirement rejected');
 });

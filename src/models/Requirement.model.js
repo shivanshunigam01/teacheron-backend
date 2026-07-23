@@ -7,6 +7,13 @@ const requirementSchema = new Schema(
     studentId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     studentName: { type: String, trim: true },
     studentEmail: { type: String, trim: true, lowercase: true },
+    /** Snapshot of poster role at create time (student | parent). */
+    posterRole: {
+      type: String,
+      enum: ['student', 'parent'],
+      default: 'student',
+      index: true,
+    },
     title: { type: String, required: true, trim: true },
     subject: { type: String, required: true, trim: true },
     skills: [{ type: String, trim: true }],

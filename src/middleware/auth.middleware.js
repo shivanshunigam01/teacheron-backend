@@ -50,3 +50,32 @@ export const requireRole =
     if (!req.user || !roles.includes(req.user.role)) throw ApiError.forbidden();
     next();
   };
+
+/**
+ * Block self-serve users (student / teacher / parent) from feature APIs
+ * until their profile registration is complete.
+ * Admins are exempt. Auth/profile/upload endpoints should not use this.
+ */
+export const requireProfileComplete = async (req, res, next) => {
+  try {
+    if (!req.user?.id) throw ApiError.unauthorized();
+    if (req.user.role === 'admin') return next();
+
+    const user = await User.findById(req.user.id).select('role profileComplete isVerified provider email isActive');
+    if (!user?.isActive) throw ApiError.forbidden('Account is disabled');
+
+    if (['student', 'teacher', 'parent'].includes(user.role)) {
+      if (user.email && user.provider !== 'whatsapp' && !user.isVerified) {
+        throw ApiError.forbidden('Verify your email before using this feature');
+      }
+      if (!user.profileComplete) {
+        throw ApiError.forbidden('Complete your profile registration before using this feature');
+      }
+    }
+
+    req.user.profileComplete = Boolean(user.profileComplete);
+    next();
+  } catch (err) {
+    next(err);
+  }
+};

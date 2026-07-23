@@ -77,7 +77,7 @@ async function healthHandler(req, res) {
       'PATCH /api/v1/auth/profile',
     ],
     googleAuth: getGoogleAuthStatus(),
-    welcomeEmail: 'Sent on student/teacher signup when SMTP is configured',
+    welcomeEmail: 'Sent to student/teacher/parent after profile registration when SMTP is configured',
   });
 }
 

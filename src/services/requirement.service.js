@@ -1,6 +1,8 @@
 import Requirement from '../models/Requirement.model.js';
 import User from '../models/User.model.js';
 import { ApiError } from '../utils/ApiError.js';
+import { ensureSubjectNames } from './subject.service.js';
+import logger from '../config/logger.js';
 
 const LEVEL_LABELS = {
   elem: 'Elementary',
@@ -18,14 +20,46 @@ export function mapRequirementStatus(doc) {
   return doc.status;
 }
 
-export function shapeRequirement(doc) {
+function posterFromDoc(o) {
+  const populated =
+    o.studentId && typeof o.studentId === 'object' && (o.studentId.role || o.studentId.name)
+      ? o.studentId
+      : null;
+
+  const roleRaw = o.posterRole || populated?.role;
+  const posterRole = roleRaw === 'parent' ? 'parent' : 'student';
+  const posterName =
+    (populated?.name || o.studentName || '').trim() ||
+    (posterRole === 'parent' ? 'Parent' : 'Student');
+  const posterVerified = Boolean(
+    populated?.isVerified || populated?.phoneVerifiedAt || o.posterVerified,
+  );
+
+  return { posterRole, posterName, posterVerified };
+}
+
+/**
+ * @param {object} doc
+ * @param {{ includeEmail?: boolean }} [opts]
+ */
+export function shapeRequirement(doc, opts = {}) {
+  const { includeEmail = false } = opts;
   const o = doc.toObject ? doc.toObject({ virtuals: true }) : { ...doc };
   const location = [o.city, o.country].filter(Boolean).join(', ') || o.location || '';
-  return {
+  const { posterRole, posterName, posterVerified } = posterFromDoc(o);
+  const studentId =
+    o.studentId?._id?.toString?.() ||
+    o.studentId?.toString?.() ||
+    o.studentId ||
+    '';
+
+  const shaped = {
     id: o._id?.toString?.() || o.id,
-    studentId: o.studentId?.toString?.() || o.studentId,
-    studentName: o.studentName || 'Student',
-    studentEmail: o.studentEmail || '',
+    studentId,
+    studentName: posterName,
+    posterName,
+    posterRole,
+    posterVerified,
     title: o.title,
     subject: o.subject,
     skills: o.skills || [],
@@ -58,6 +92,12 @@ export function shapeRequirement(doc) {
     approvedAt: o.approvedAt,
     rejectedAt: o.rejectedAt,
   };
+
+  if (includeEmail) {
+    shaped.studentEmail = o.studentEmail || o.studentId?.email || '';
+  }
+
+  return shaped;
 }
 
 export function buildJobsFilter(query = {}) {
@@ -115,8 +155,10 @@ export function buildJobsFilter(query = {}) {
   return filter;
 }
 
+const POSTER_SELECT = 'name role isVerified phoneVerifiedAt email';
+
 export async function findRequirementOrThrow(id) {
-  const item = await Requirement.findById(id);
+  const item = await Requirement.findById(id).populate('studentId', POSTER_SELECT);
   if (!item) throw ApiError.notFound('Requirement not found');
   return item;
 }
@@ -125,7 +167,14 @@ export function canViewRequirement(item, user) {
   if (item.approved && item.status === 'open') return true;
   if (!user) return false;
   if (user.role === 'admin') return true;
-  return String(item.studentId) === String(user.id);
+  const ownerId = item.studentId?._id || item.studentId;
+  return String(ownerId) === String(user.id);
+}
+
+export function isRequirementOwner(item, user) {
+  if (!user) return false;
+  const ownerId = item.studentId?._id || item.studentId;
+  return String(ownerId) === String(user.id);
 }
 
 export async function createRequirement(user, body) {
@@ -133,18 +182,34 @@ export async function createRequirement(user, body) {
     throw ApiError.forbidden('Only students or parents can post requirements');
   }
 
+  const dbUser = await User.findById(user.id).select('name email role isVerified phoneVerifiedAt');
+  if (!dbUser) throw ApiError.notFound('User not found');
+
   const skills = Array.isArray(body.skills)
     ? body.skills.map((s) => String(s).trim()).filter(Boolean)
     : body.skill
       ? [String(body.skill).trim()]
       : [];
 
+  const subject = String(body.subject || '').trim();
+
+  // Grow subjects/skills master from requirement subject + skills.
+  try {
+    await ensureSubjectNames([subject, ...skills]);
+  } catch (err) {
+    logger.warn(`[subjects] ensure on requirement create failed: ${err.message}`);
+  }
+
+  const posterRole = dbUser.role === 'parent' ? 'parent' : 'student';
+  const posterName = (dbUser.name || '').trim() || (posterRole === 'parent' ? 'Parent' : 'Student');
+
   const item = await Requirement.create({
-    studentId: user.id,
-    studentName: user.name,
-    studentEmail: user.email,
+    studentId: dbUser._id,
+    studentName: posterName,
+    studentEmail: dbUser.email,
+    posterRole,
     title: body.title.trim(),
-    subject: body.subject.trim(),
+    subject,
     skills,
     level: body.level || 'high',
     levelOther: body.level === 'other' ? body.levelOther?.trim() : undefined,
@@ -163,7 +228,9 @@ export async function createRequirement(user, body) {
     approved: false,
   });
 
-  return shapeRequirement(item);
+  // Attach populated poster for accurate shape
+  item.studentId = dbUser;
+  return shapeRequirement(item, { includeEmail: true });
 }
 
 export async function approveRequirement(id, adminRemark = '') {
@@ -182,7 +249,7 @@ export async function approveRequirement(id, adminRemark = '') {
   item.rejectedAt = undefined;
   await item.save();
 
-  const student = await User.findById(item.studentId).select('name email');
+  const student = await User.findById(item.studentId?._id || item.studentId).select('name email');
   return { item, student, alreadyApproved: false };
 }
 
@@ -200,3 +267,5 @@ export async function rejectRequirement(id, adminRemark = '') {
 
   return item;
 }
+
+export { POSTER_SELECT };

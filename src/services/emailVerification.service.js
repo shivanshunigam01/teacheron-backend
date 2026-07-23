@@ -96,45 +96,52 @@ export async function resendEmailVerificationOtp(user) {
 }
 
 /**
- * Send welcome email once when student email is verified.
+ * Send welcome email once when a self-serve account has verified email (if any)
+ * and completed their profile.
  * @param {import('../models/User.model.js').default} user
  */
-export async function sendStudentWelcomeIfReady(user) {
-  if (user.role !== 'student' || !user.isVerified || user.welcomeEmailSent) {
-    return { sent: false, skipped: true };
+export async function sendWelcomeIfReady(user) {
+  if (!['student', 'teacher', 'parent'].includes(user.role)) {
+    return { sent: false, skipped: true, reason: 'role' };
+  }
+  if (user.welcomeEmailSent) {
+    return { sent: false, skipped: true, reason: 'already_sent' };
+  }
+  if (!user.profileComplete) {
+    return { sent: false, skipped: true, reason: 'profile_incomplete' };
+  }
+  // Email/password + Google accounts must verify email first.
+  // WhatsApp-only accounts may have no email — skip welcome mail.
+  if (!user.email) {
+    return { sent: false, skipped: true, reason: 'no_email' };
+  }
+  if (user.provider !== 'whatsapp' && !user.isVerified) {
+    return { sent: false, skipped: true, reason: 'unverified' };
   }
 
   try {
-    const result = await sendWelcomeEmail({ name: user.name, email: user.email, role: 'student' });
+    const result = await sendWelcomeEmail({
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    });
     if (result.sent) {
       user.welcomeEmailSent = true;
       await user.save();
     }
     return result;
   } catch (err) {
-    logger.error(`[welcome-email] student post-verify: ${err.message}`);
+    logger.error(`[welcome-email] ${user.role}: ${err.message}`);
     return { sent: false, error: err.message };
   }
 }
 
-/**
- * Send welcome email once when tutor profile is complete.
- * @param {import('../models/User.model.js').default} user
- */
-export async function sendTeacherWelcomeIfReady(user) {
-  if (user.role !== 'teacher' || !user.isVerified || !user.profileComplete || user.welcomeEmailSent) {
-    return { sent: false, skipped: true };
-  }
+/** @deprecated use sendWelcomeIfReady */
+export async function sendStudentWelcomeIfReady(user) {
+  return sendWelcomeIfReady(user);
+}
 
-  try {
-    const result = await sendWelcomeEmail({ name: user.name, email: user.email, role: 'teacher' });
-    if (result.sent) {
-      user.welcomeEmailSent = true;
-      await user.save();
-    }
-    return result;
-  } catch (err) {
-    logger.error(`[welcome-email] tutor post-profile: ${err.message}`);
-    return { sent: false, error: err.message };
-  }
+/** @deprecated use sendWelcomeIfReady */
+export async function sendTeacherWelcomeIfReady(user) {
+  return sendWelcomeIfReady(user);
 }
