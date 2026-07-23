@@ -12,6 +12,7 @@ import {
   resetSchema,
   changePasswordSchema,
   googleLoginSchema,
+  logoutSchema,
   updateProfileSchema,
   verifyEmailSchema,
   whatsappSendOtpSchema,
@@ -44,7 +45,7 @@ r.post('/whatsapp/verify-otp', authRateLimit, validate(whatsappVerifyOtpSchema),
 r.post('/whatsapp/login', authRateLimit, validate(whatsappLoginSchema), wc.login);
 r.post('/whatsapp/signup', authRateLimit, validate(whatsappSignupSchema), wc.signup);
 r.post('/refresh', validate(refreshSchema), c.refresh);
-r.post('/logout', verifyJWT, c.logout);
+r.post('/logout', verifyJWT, validate(logoutSchema), c.logout);
 r.post('/forgot-password', authRateLimit, validate(forgotPasswordSchema), c.forgotPassword);
 r.post('/reset-password', validate(resetSchema), c.resetPassword);
 r.post('/change-password', verifyJWT, authRateLimit, validate(changePasswordSchema), c.changePassword);

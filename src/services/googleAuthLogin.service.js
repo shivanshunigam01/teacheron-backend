@@ -3,6 +3,8 @@ import { ApiError } from '../utils/ApiError.js';
 import { computeProfileComplete, initialsFromName } from '../utils/profileComplete.js';
 import { sendStudentWelcomeIfReady } from '../services/emailVerification.service.js';
 
+const SELF_SERVE_ROLES = ['student', 'teacher', 'parent'];
+
 function buildTeacherProfile(name) {
   return {
     initials: initialsFromName(name),
@@ -18,7 +20,7 @@ function buildTeacherProfile(name) {
  * Google users do not require a password.
  *
  * @param {{ googleId: string; email: string; name: string; picture: string }} googleUser
- * @param {{ role?: 'student' | 'teacher' }} options
+ * @param {{ role?: 'student' | 'teacher' | 'parent' }} options
  */
 export async function findOrCreateGoogleUser(googleUser, { role } = {}) {
   let user = await User.findOne({ email: googleUser.email }).select('+passwordHash');
@@ -26,7 +28,7 @@ export async function findOrCreateGoogleUser(googleUser, { role } = {}) {
   let welcomeEmailSent = false;
 
   if (!user) {
-    const resolvedRole = role && ['student', 'teacher'].includes(role) ? role : 'student';
+    const resolvedRole = role && SELF_SERVE_ROLES.includes(role) ? role : 'student';
 
     user = await User.create({
       name: googleUser.name,
@@ -40,6 +42,7 @@ export async function findOrCreateGoogleUser(googleUser, { role } = {}) {
       welcomeEmailSent: false,
       teacherProfile: resolvedRole === 'teacher' ? buildTeacherProfile(googleUser.name) : undefined,
       studentProfile: resolvedRole === 'student' ? {} : undefined,
+      parentProfile: resolvedRole === 'parent' ? { children: [] } : undefined,
     });
     isNewUser = true;
 
@@ -51,8 +54,8 @@ export async function findOrCreateGoogleUser(googleUser, { role } = {}) {
     return { user, isNewUser, welcomeEmailSent };
   }
 
-  if (!['student', 'teacher'].includes(user.role)) {
-    throw ApiError.forbidden('Google sign-in is only available for student and tutor accounts');
+  if (!SELF_SERVE_ROLES.includes(user.role)) {
+    throw ApiError.forbidden('Google sign-in is only available for student, tutor, and parent accounts');
   }
   if (!user.isActive) {
     throw ApiError.forbidden('Account is disabled');

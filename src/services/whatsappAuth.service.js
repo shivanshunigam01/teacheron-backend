@@ -167,8 +167,8 @@ export async function loginWithVerifiedPhone(rawPhone) {
     return { newUser: true, phone };
   }
 
-  if (!['student', 'teacher'].includes(user.role)) {
-    throw ApiError.forbidden('WhatsApp login is only available for student and tutor accounts');
+  if (!['student', 'teacher', 'parent'].includes(user.role)) {
+    throw ApiError.forbidden('WhatsApp login is only available for student, tutor, and parent accounts');
   }
 
   if (!user.phoneE164) {
@@ -222,6 +222,7 @@ export async function signupWithVerifiedPhone({ name, phone: rawPhone, role }) {
           }
         : undefined,
     studentProfile: role === 'student' ? {} : undefined,
+    parentProfile: role === 'parent' ? { children: [] } : undefined,
   });
 
   user.profileComplete = computeProfileComplete(user);

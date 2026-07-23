@@ -4,7 +4,6 @@ import User from '../models/User.model.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
-import { toJSON } from '../utils/serialize.js';
 import env from '../config/env.js';
 import * as tokenService from '../services/token.service.js';
 import {
@@ -27,17 +26,31 @@ import { findOrCreateGoogleUser } from '../services/googleAuthLogin.service.js';
 
 const userId = (u) => (u._id ? String(u._id) : u.id);
 
-const issue = (u) => ({
-  accessToken: tokenService.signAccess(userId(u), u.role, u.email),
-  refreshToken: tokenService.signRefresh(userId(u)),
-});
+const SELF_SERVE_ROLES = ['student', 'teacher', 'parent'];
 
+const issue = async (u) => tokenService.issueTokens(u);
+
+/** Email OTP required for local email accounts; WhatsApp-only / already-verified skip. */
 const needsEmailVerification = (user) =>
-  (user.role === 'teacher' || user.role === 'student') && !user.isVerified;
+  SELF_SERVE_ROLES.includes(user.role) &&
+  Boolean(user.email) &&
+  user.provider !== 'whatsapp' &&
+  !user.isVerified;
+
+const withHasPassword = async (user) => {
+  const json = await withStaffRole(user);
+  if (Object.prototype.hasOwnProperty.call(user, 'passwordHash') || user.passwordHash !== undefined) {
+    json.hasPassword = Boolean(user.passwordHash);
+    return json;
+  }
+  const row = await User.findById(userId(user)).select('+passwordHash').lean();
+  json.hasPassword = Boolean(row?.passwordHash);
+  return json;
+};
 
 const authPayload = async (user, extra = {}) => ({
-  user: await withStaffRole(user),
-  ...issue(user),
+  user: await withHasPassword(user),
+  ...(await issue(user)),
   profileComplete: user.profileComplete,
   requiresEmailVerification: needsEmailVerification(user),
   ...extra,
@@ -45,8 +58,8 @@ const authPayload = async (user, extra = {}) => ({
 
 export const register = asyncHandler(async (req, res) => {
   const { name, email, password, role } = req.body;
-  if (!['student', 'teacher'].includes(role)) {
-    throw ApiError.badRequest('Only student or tutor accounts can self-register');
+  if (!SELF_SERVE_ROLES.includes(role)) {
+    throw ApiError.badRequest('Only student, tutor, or parent accounts can self-register');
   }
   if (await User.findOne({ email: email.toLowerCase() })) {
     throw ApiError.conflict('Email already exists');
@@ -81,6 +94,7 @@ export const register = asyncHandler(async (req, res) => {
           }
         : undefined,
     studentProfile: role === 'student' ? {} : undefined,
+    parentProfile: role === 'parent' ? { children: [] } : undefined,
   });
 
   user.profileComplete = computeProfileComplete(user);
@@ -124,8 +138,8 @@ export const register = asyncHandler(async (req, res) => {
 export const verifyEmail = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user.id).select('+emailVerificationOtpHash');
   if (!user) throw ApiError.notFound('User not found');
-  if (user.role !== 'teacher' && user.role !== 'student') {
-    throw ApiError.badRequest('Email verification is only required for student and tutor accounts');
+  if (!SELF_SERVE_ROLES.includes(user.role)) {
+    throw ApiError.badRequest('Email verification is only required for student, tutor, and parent accounts');
   }
   if (user.isVerified) {
     return ApiResponse.ok(res, await authPayload(user), 'Email already verified');
@@ -148,9 +162,11 @@ export const verifyEmail = asyncHandler(async (req, res) => {
   const message =
     refreshed.role === 'teacher'
       ? 'Email verified — complete your tutor profile to continue'
-      : extra.welcomeEmailSent
-        ? 'Email verified — welcome email sent with course highlights'
-        : 'Email verified — you can complete your profile and explore courses';
+      : refreshed.role === 'parent'
+        ? 'Email verified — complete your parent profile to continue'
+        : extra.welcomeEmailSent
+          ? 'Email verified — welcome email sent with course highlights'
+          : 'Email verified — you can complete your profile and explore courses';
 
   ApiResponse.ok(res, await authPayload(refreshed, extra), message);
 });
@@ -158,8 +174,8 @@ export const verifyEmail = asyncHandler(async (req, res) => {
 export const resendVerification = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user.id);
   if (!user) throw ApiError.notFound('User not found');
-  if (user.role !== 'teacher' && user.role !== 'student') {
-    throw ApiError.badRequest('Email verification is only required for student and tutor accounts');
+  if (!SELF_SERVE_ROLES.includes(user.role)) {
+    throw ApiError.badRequest('Email verification is only required for student, tutor, and parent accounts');
   }
   if (user.isVerified) {
     return ApiResponse.ok(res, { alreadyVerified: true }, 'Email already verified');
@@ -186,7 +202,15 @@ export const login = asyncHandler(async (req, res) => {
     throw err;
   }
   if (!user.passwordHash) {
-    throw ApiError.unauthorized('This account uses Google sign-in. Continue with Google instead.');
+    const via =
+      user.provider === 'whatsapp'
+        ? 'WhatsApp'
+        : user.provider === 'google'
+          ? 'Google'
+          : 'your social sign-in provider';
+    throw ApiError.unauthorized(
+      `This account has no password. Continue with ${via}, or use Forgot password to set one if you have an email on the account.`,
+    );
   }
   if (!(await bcrypt.compare(password, user.passwordHash))) {
     throw ApiError.unauthorized('Incorrect password. Please try again or use Forgot password.');
@@ -302,33 +326,58 @@ export const googleLogin = async (req, res) => {
 };
 
 export const refresh = asyncHandler(async (req, res) => {
-  const p = tokenService.verifyRefresh(req.body.refreshToken);
-  const user = await User.findById(p.sub);
-  if (!user || !user.isActive) throw ApiError.unauthorized();
-  ApiResponse.ok(
-    res,
-    { accessToken: tokenService.signAccess(userId(user), user.role, user.email) },
-    'Token refreshed',
-  );
+  const refreshToken = req.body.refreshToken;
+  let payload;
+  try {
+    payload = tokenService.verifyRefresh(refreshToken);
+  } catch {
+    throw ApiError.unauthorized('Invalid or expired refresh token');
+  }
+
+  const user = await User.findById(payload.sub);
+  if (!user || !user.isActive) throw ApiError.unauthorized('Invalid or expired refresh token');
+
+  const stored = user.refreshTokens || [];
+  // Legacy sessions (pre-revocation) have an empty list — allow once, then rotate into storage.
+  if (stored.length > 0 && !tokenService.isStoredRefreshTokenValid(user, refreshToken)) {
+    throw ApiError.unauthorized('Refresh token has been revoked');
+  }
+
+  const tokens = await tokenService.rotateRefreshToken(user, refreshToken);
+  ApiResponse.ok(res, tokens, 'Token refreshed');
 });
 
-export const logout = asyncHandler(async (req, res) => res.status(204).send());
+export const logout = asyncHandler(async (req, res) => {
+  const refreshToken = req.body?.refreshToken;
+  await tokenService.revokeRefreshToken(req.user.id, refreshToken);
+  res.status(204).send();
+});
 
 export const me = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user.id);
   if (!user) throw ApiError.notFound('User not found');
-  ApiResponse.ok(res, await withStaffRole(user), 'Profile fetched');
+  ApiResponse.ok(res, await withHasPassword(user), 'Profile fetched');
 });
 
 export const updateProfile = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user.id);
   if (!user) throw ApiError.notFound('User not found');
 
-  if ((user.role === 'teacher' || user.role === 'student') && !user.isVerified) {
+  if (SELF_SERVE_ROLES.includes(user.role) && Boolean(user.email) && user.provider !== 'whatsapp' && !user.isVerified) {
     throw ApiError.forbidden('Verify your email before completing your profile');
   }
 
-  const { name, phone, phoneCountryCode, avatarUrl, theme, locale, teacherProfile, studentProfile } = req.body;
+  const {
+    name,
+    phone,
+    phoneCountryCode,
+    avatarUrl,
+    theme,
+    locale,
+    teacherProfile,
+    studentProfile,
+    parentProfile,
+  } = req.body;
 
   if (name) user.name = name;
   if (phone !== undefined) user.phone = phone;
@@ -346,9 +395,10 @@ export const updateProfile = asyncHandler(async (req, res) => {
       avatarUrl,
       teacherProfile,
     });
+    const json = await withHasPassword(updated);
     return ApiResponse.ok(
       res,
-      { ...toJSON(updated), welcomeEmailSent, requiresEmailVerification: false },
+      { ...json, welcomeEmailSent, requiresEmailVerification: false },
       welcomeEmailSent ? 'Profile complete — welcome email sent' : 'Profile updated',
     );
   }
@@ -357,6 +407,18 @@ export const updateProfile = asyncHandler(async (req, res) => {
     user.studentProfile = {
       ...(user.studentProfile?.toObject?.() || user.studentProfile || {}),
       ...studentProfile,
+    };
+  }
+
+  if (user.role === 'parent' && parentProfile) {
+    const prev = user.parentProfile?.toObject?.() || user.parentProfile || {};
+    user.parentProfile = {
+      ...prev,
+      ...parentProfile,
+      children:
+        parentProfile.children !== undefined
+          ? parentProfile.children
+          : prev.children || [],
     };
   }
 
@@ -373,9 +435,10 @@ export const updateProfile = asyncHandler(async (req, res) => {
     welcomeEmailSent = Boolean(welcome.sent);
   }
 
+  const json = await withHasPassword(user);
   ApiResponse.ok(
     res,
-    { ...toJSON(user), welcomeEmailSent, requiresEmailVerification: false },
+    { ...json, welcomeEmailSent, requiresEmailVerification: false },
     welcomeEmailSent ? 'Profile complete — welcome email sent' : 'Profile updated',
   );
 });
@@ -463,25 +526,29 @@ export const resetPassword = asyncHandler(async (req, res) => {
     passwordResetToken: tokenHash,
     passwordResetExpires: { $gt: new Date() },
   });
-  if (!user || !['student', 'teacher'].includes(user.role)) {
+  if (!user || !SELF_SERVE_ROLES.includes(user.role)) {
     throw ApiError.badRequest('Invalid or expired token');
   }
   user.passwordHash = await bcrypt.hash(req.body.password, env.BCRYPT_ROUNDS);
   user.passwordResetToken = undefined;
   user.passwordResetExpires = undefined;
+  // Invalidate existing refresh sessions after password reset
+  user.refreshTokens = [];
   await user.save();
   ApiResponse.ok(res, { message: 'Password reset successful' }, 'Password reset successful');
 });
 
 export const changePassword = asyncHandler(async (req, res) => {
-  if (!['student', 'teacher'].includes(req.user.role)) {
-    throw ApiError.forbidden('Password change is only available for student and tutor accounts');
+  if (!SELF_SERVE_ROLES.includes(req.user.role)) {
+    throw ApiError.forbidden('Password change is only available for student, tutor, and parent accounts');
   }
 
   const user = await User.findById(req.user.id).select('+passwordHash');
   if (!user) throw ApiError.notFound('User not found');
   if (!user.passwordHash) {
-    throw ApiError.badRequest('This account uses Google sign-in and has no password to change');
+    throw ApiError.badRequest(
+      'This account has no password yet. Use Forgot password to set one, or continue with Google / WhatsApp.',
+    );
   }
 
   const valid = await bcrypt.compare(req.body.currentPassword, user.passwordHash);
@@ -490,6 +557,7 @@ export const changePassword = asyncHandler(async (req, res) => {
   user.passwordHash = await bcrypt.hash(req.body.password, env.BCRYPT_ROUNDS);
   user.passwordResetToken = undefined;
   user.passwordResetExpires = undefined;
+  user.refreshTokens = [];
   await user.save();
 
   ApiResponse.ok(res, { message: 'Password updated' }, 'Password updated successfully');

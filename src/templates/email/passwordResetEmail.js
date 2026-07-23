@@ -17,15 +17,22 @@ const copy = {
     subject: 'Reset your TeacherPoint student password',
     preheader: 'Choose a new password for your student account.',
   },
+  parent: {
+    headline: 'Reset your parent password',
+    intro:
+      'Hi <strong>{name}</strong>, we received a request to reset the password for your TeacherPoint parent account. Tap the button below to choose a new password.',
+    subject: 'Reset your TeacherPoint parent password',
+    preheader: 'Choose a new password for your parent account.',
+  },
 };
 
 /**
- * @param {{ name: string; token: string; role?: 'student' | 'teacher'; setPassword?: boolean }} params
+ * @param {{ name: string; token: string; role?: 'student' | 'teacher' | 'parent'; setPassword?: boolean }} params
  */
 export function buildPasswordResetEmail({ name, token, role = 'student', setPassword = false }) {
   const resetUrl = getResetPasswordUrl(token);
   const safeName = escapeHtml(name || 'there');
-  const c = copy[role === 'teacher' ? 'teacher' : 'student'];
+  const c = copy[role] || copy.student;
   const headline = setPassword ? c.headline.replace('Reset', 'Set') : c.headline;
   const buttonLabel = setPassword ? 'Set password' : 'Reset password';
   const introHtml = (setPassword

@@ -10,22 +10,34 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { withStaffRole } from '../utils/adminStaff.js';
 import { recordUserIpActivity } from '../services/ipMonitor.service.js';
 import logger from '../config/logger.js';
+import User from '../models/User.model.js';
 
 const userId = (u) => (u._id ? String(u._id) : u.id);
 
-const issue = (u) => ({
-  accessToken: tokenService.signAccess(userId(u), u.role, u.email || ''),
-  refreshToken: tokenService.signRefresh(userId(u)),
-});
+const SELF_SERVE_ROLES = ['student', 'teacher', 'parent'];
+
+const issue = async (u) => tokenService.issueTokens(u);
 
 const needsEmailVerification = (user) =>
+  SELF_SERVE_ROLES.includes(user.role) &&
+  Boolean(user.email) &&
   user.provider !== 'whatsapp' &&
-  (user.role === 'teacher' || user.role === 'student') &&
   !user.isVerified;
 
+const withHasPassword = async (user) => {
+  const json = await withStaffRole(user);
+  if (Object.prototype.hasOwnProperty.call(user, 'passwordHash') || user.passwordHash !== undefined) {
+    json.hasPassword = Boolean(user.passwordHash);
+    return json;
+  }
+  const row = await User.findById(userId(user)).select('+passwordHash').lean();
+  json.hasPassword = Boolean(row?.passwordHash);
+  return json;
+};
+
 const authPayload = async (user, extra = {}) => ({
-  user: await withStaffRole(user),
-  ...issue(user),
+  user: await withHasPassword(user),
+  ...(await issue(user)),
   profileComplete: user.profileComplete,
   requiresEmailVerification: needsEmailVerification(user),
   ...extra,

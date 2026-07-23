@@ -5,7 +5,7 @@ import { buildPasswordResetEmail } from '../templates/email/passwordResetEmail.j
 
 /**
  * Send password reset email to the address the user entered on the forgot-password form.
- * @param {{ to: string; name: string; token: string; role?: 'student' | 'teacher'; setPassword?: boolean }} params
+ * @param {{ to: string; name: string; token: string; role?: 'student' | 'teacher' | 'parent'; setPassword?: boolean }} params
  */
 export async function sendPasswordResetEmail({ to, name, token, role = 'student', setPassword = false }) {
   const destination = String(to || '').trim().toLowerCase();
@@ -47,12 +47,12 @@ export async function sendPasswordResetEmail({ to, name, token, role = 'student'
 }
 
 /**
- * Student/tutor accounts may receive a reset/set-password link at the email they enter.
- * Includes Google sign-in users who have not set a password yet.
+ * Student / tutor / parent accounts may receive a reset/set-password link at the email they enter.
+ * Includes Google / WhatsApp sign-in users who have not set a password yet (when they have an email).
  * @param {import('../models/User.model.js').default | null} user
  */
 export function canSendPasswordReset(user) {
-  if (!user || !['student', 'teacher'].includes(user.role)) return false;
+  if (!user || !['student', 'teacher', 'parent'].includes(user.role)) return false;
   if (user.isActive === false) return false;
   return true;
 }

@@ -28,6 +28,13 @@ export function computeProfileComplete(user) {
         hasRate,
     );
   }
+  if (user.role === 'parent') {
+    const children = user.parentProfile?.children || [];
+    const hasChild = children.some(
+      (c) => c?.name?.trim() && (c.age != null || c.grade?.trim()),
+    );
+    return Boolean(user.phone?.trim() || hasChild);
+  }
   return true;
 }
 

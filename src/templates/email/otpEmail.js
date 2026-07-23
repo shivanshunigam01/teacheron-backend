@@ -21,16 +21,25 @@ const copy = {
     textSubject: 'Verify your student email — TeacherPoint',
     textAfter: 'Your welcome email with course highlights is sent after you verify.',
   },
+  parent: {
+    headline: 'Verify your parent email',
+    intro:
+      'Hi <strong>{name}</strong>, welcome to TeacherPoint! Enter this one-time code to verify your email and start managing your child\'s learning.',
+    afterNote:
+      'After verification you can complete your parent profile and find tutors for your child.',
+    textSubject: 'Verify your parent email — TeacherPoint',
+    textAfter: 'Complete your parent profile after verification to get the most from TeacherPoint.',
+  },
 };
 
 /**
- * @param {{ name: string; otp: string; role?: 'student' | 'teacher' }} params
+ * @param {{ name: string; otp: string; role?: 'student' | 'teacher' | 'parent' }} params
  */
 export function buildOtpEmail({ name, otp, role = 'teacher' }) {
   const safeName = escapeHtml(name);
   const safeOtp = escapeHtml(otp);
   const minutes = 10;
-  const c = copy[role === 'student' ? 'student' : 'teacher'];
+  const c = copy[role] || copy.teacher;
   const introHtml = c.intro.replace('{name}', safeName);
 
   const bodyHtml = `

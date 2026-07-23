@@ -5,7 +5,7 @@ export const registerSchema = z.object({
     name: z.string().min(2).max(100),
     email: z.string().email(),
     password: z.string().min(8).max(128),
-    role: z.enum(['student', 'teacher']),
+    role: z.enum(['student', 'teacher', 'parent']),
   }),
 });
 
@@ -45,8 +45,17 @@ export const changePasswordSchema = z.object({
 export const googleLoginSchema = z.object({
   body: z.object({
     credential: z.string().min(10),
-    role: z.enum(['student', 'teacher']).optional(),
+    role: z.enum(['student', 'teacher', 'parent']).optional(),
   }),
+});
+
+export const logoutSchema = z.object({
+  body: z
+    .object({
+      refreshToken: z.string().min(10).optional(),
+    })
+    .optional()
+    .default({}),
 });
 
 const teachingSubjectSchema = z.object({
@@ -130,6 +139,16 @@ const studentProfileSchema = z.object({
   goals: z.string().max(1000).optional(),
 });
 
+const parentChildSchema = z.object({
+  name: z.string().min(1).max(100),
+  age: z.number().int().min(1).max(25).optional(),
+  grade: z.string().min(1).max(50).optional(),
+});
+
+const parentProfileSchema = z.object({
+  children: z.array(parentChildSchema).max(20).optional(),
+});
+
 export const updateProfileSchema = z.object({
   body: z
     .object({
@@ -141,6 +160,7 @@ export const updateProfileSchema = z.object({
       locale: z.string().max(10).optional(),
       teacherProfile: teacherProfileSchema.optional(),
       studentProfile: studentProfileSchema.optional(),
+      parentProfile: parentProfileSchema.optional(),
     })
     .refine(
       (d) =>
@@ -195,6 +215,6 @@ export const whatsappSignupSchema = z.object({
   body: z.object({
     name: z.string().min(2).max(100),
     phone: internationalPhoneSchema,
-    role: z.enum(['student', 'teacher']),
+    role: z.enum(['student', 'teacher', 'parent']),
   }),
 });
