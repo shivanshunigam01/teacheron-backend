@@ -1,7 +1,7 @@
 import Requirement from '../models/Requirement.model.js';
 import User from '../models/User.model.js';
 import { ApiError } from '../utils/ApiError.js';
-import { ensureSubjectNames } from './subject.service.js';
+import { ensureSubjectByName, ensureSubjectNames } from './subject.service.js';
 import logger from '../config/logger.js';
 
 const LEVEL_LABELS = {
@@ -10,6 +10,9 @@ const LEVEL_LABELS = {
   high: 'High school',
   college: 'College / University',
   pro: 'Professional',
+  beginner: 'Beginner',
+  intermediate: 'Intermediate',
+  advanced: 'Advanced',
 };
 
 export function mapRequirementStatus(doc) {
@@ -18,6 +21,34 @@ export function mapRequirementStatus(doc) {
   if (doc.approved && doc.status === 'open') return 'approved';
   if (['matched', 'closed'].includes(doc.status)) return 'fulfilled';
   return doc.status;
+}
+
+/**
+ * Public-safe phone display, e.g. "+91-**********".
+ * Never returns the real national digits.
+ */
+export function maskPosterPhone(user) {
+  if (!user || typeof user !== 'object') return null;
+
+  const ccRaw = String(user.phoneCountryCode || '').trim().replace(/\s+/g, '');
+  const phoneDigits = String(user.phone || '').replace(/\D/g, '');
+  const e164Digits = String(user.phoneE164 || '').replace(/\D/g, '');
+
+  if (!phoneDigits && !e164Digits && !user.phoneVerifiedAt) return null;
+
+  let cc = ccRaw || '+91';
+  if (!cc.startsWith('+')) cc = `+${cc}`;
+
+  const ccDigits = cc.replace(/\D/g, '');
+  let nationalLen = phoneDigits.length;
+  if (!nationalLen && e164Digits) {
+    nationalLen = e164Digits.startsWith(ccDigits)
+      ? e164Digits.length - ccDigits.length
+      : Math.max(0, e164Digits.length - 2);
+  }
+  if (nationalLen < 6) nationalLen = 10;
+
+  return `${cc}-${'*'.repeat(nationalLen)}`;
 }
 
 function posterFromDoc(o) {
@@ -34,8 +65,10 @@ function posterFromDoc(o) {
   const posterVerified = Boolean(
     populated?.isVerified || populated?.phoneVerifiedAt || o.posterVerified,
   );
+  const posterPhoneVerified = Boolean(populated?.phoneVerifiedAt);
+  const posterPhoneMasked = maskPosterPhone(populated);
 
-  return { posterRole, posterName, posterVerified };
+  return { posterRole, posterName, posterVerified, posterPhoneVerified, posterPhoneMasked };
 }
 
 /**
@@ -46,7 +79,13 @@ export function shapeRequirement(doc, opts = {}) {
   const { includeEmail = false } = opts;
   const o = doc.toObject ? doc.toObject({ virtuals: true }) : { ...doc };
   const location = [o.city, o.country].filter(Boolean).join(', ') || o.location || '';
-  const { posterRole, posterName, posterVerified } = posterFromDoc(o);
+  const {
+    posterRole,
+    posterName,
+    posterVerified,
+    posterPhoneVerified,
+    posterPhoneMasked,
+  } = posterFromDoc(o);
   const studentId =
     o.studentId?._id?.toString?.() ||
     o.studentId?.toString?.() ||
@@ -60,8 +99,18 @@ export function shapeRequirement(doc, opts = {}) {
     posterName,
     posterRole,
     posterVerified,
+    posterPhoneVerified: Boolean(posterPhoneVerified || o.phoneVerifiedAt),
+    posterPhoneMasked:
+      posterPhoneMasked ||
+      maskPosterPhone({
+        phoneCountryCode: o.phoneCountryCode,
+        phone: o.phone,
+        phoneVerifiedAt: o.phoneVerifiedAt || true,
+      }) ||
+      undefined,
     title: o.title,
     subject: o.subject,
+    subjectPendingApproval: !!o.subjectPendingApproval,
     skills: o.skills || [],
     level:
       o.level === 'other' && o.levelOther
@@ -71,16 +120,33 @@ export function shapeRequirement(doc, opts = {}) {
     levelOther: o.levelOther || undefined,
     jobType: o.jobType || 'tutoring',
     mode: o.mode,
+    meetingOptions: {
+      online: o.meetingOptions?.online ?? o.mode !== 'offline',
+      atMyPlace: o.meetingOptions?.atMyPlace ?? (o.mode === 'offline' || o.mode === 'both'),
+      travelToTutor: !!o.meetingOptions?.travelToTutor,
+    },
     sessionsPerWeek: o.sessionsPerWeek,
-    location: o.location || location,
+    location: o.addressFormatted || o.location || location,
+    addressFormatted: o.addressFormatted || o.location || location,
     city: o.city || o.location || '',
     country: o.country || '',
     budget: Number(o.budgetPerHour ?? 0),
     budgetPerHour: Number(o.budgetPerHour ?? 0),
+    budgetUnit: o.budgetUnit || 'hour',
     currency: o.currency || 'USD',
     duration:
       o.duration === 'other' && o.durationOther ? o.durationOther : o.duration,
     durationOther: o.durationOther || undefined,
+    timeCommitment: o.timeCommitment || 'part-time',
+    teacherGender: o.teacherGender || 'any',
+    languages: o.languages || [],
+    tutorOrigin: o.tutorOrigin || '',
+    attachments: (o.attachments || []).map((a) => ({
+      url: a.url,
+      name: a.name,
+      mimeType: a.mimeType,
+      size: a.size,
+    })),
     details: o.details,
     status: mapRequirementStatus(o),
     backendStatus: o.status,
@@ -95,6 +161,8 @@ export function shapeRequirement(doc, opts = {}) {
 
   if (includeEmail) {
     shaped.studentEmail = o.studentEmail || o.studentId?.email || '';
+    shaped.phoneCountryCode = o.phoneCountryCode || '';
+    shaped.phone = o.phone || '';
   }
 
   return shaped;
@@ -140,6 +208,11 @@ export function buildJobsFilter(query = {}) {
     filter.mode = { $in: ['offline', 'both'] };
   }
 
+  const level = (query.level || '').trim();
+  if (['elem', 'middle', 'high', 'college', 'pro', 'other'].includes(level)) {
+    filter.level = level;
+  }
+
   const q = (query.q || '').trim();
   if (q) {
     filter.$and = filter.$and || [];
@@ -148,6 +221,7 @@ export function buildJobsFilter(query = {}) {
         { title: { $regex: q, $options: 'i' } },
         { details: { $regex: q, $options: 'i' } },
         { subject: { $regex: q, $options: 'i' } },
+        { skills: { $elemMatch: { $regex: q, $options: 'i' } } },
       ],
     });
   }
@@ -155,7 +229,8 @@ export function buildJobsFilter(query = {}) {
   return filter;
 }
 
-const POSTER_SELECT = 'name role isVerified phoneVerifiedAt email';
+const POSTER_SELECT =
+  'name role isVerified phoneVerifiedAt phone phoneCountryCode phoneE164 email';
 
 export async function findRequirementOrThrow(id) {
   const item = await Requirement.findById(id).populate('studentId', POSTER_SELECT);
@@ -182,7 +257,9 @@ export async function createRequirement(user, body) {
     throw ApiError.forbidden('Only students or parents can post requirements');
   }
 
-  const dbUser = await User.findById(user.id).select('name email role isVerified phoneVerifiedAt');
+  const dbUser = await User.findById(user.id).select(
+    'name email role isVerified phoneVerifiedAt phone phoneCountryCode phoneE164',
+  );
   if (!dbUser) throw ApiError.notFound('User not found');
 
   const skills = Array.isArray(body.skills)
@@ -192,16 +269,59 @@ export async function createRequirement(user, body) {
       : [];
 
   const subject = String(body.subject || '').trim();
+  const wantPendingSubject = Boolean(body.subjectPendingApproval);
 
-  // Grow subjects/skills master from requirement subject + skills.
+  let subjectPendingApproval = false;
   try {
-    await ensureSubjectNames([subject, ...skills]);
+    const subjectDoc = await ensureSubjectByName(subject, {
+      pendingApproval: wantPendingSubject,
+      proposedBy: user.id,
+    });
+    subjectPendingApproval = Boolean(
+      wantPendingSubject || subjectDoc?.approvalStatus === 'pending' || subjectDoc?.isActive === false,
+    );
+    await ensureSubjectNames(skills);
   } catch (err) {
     logger.warn(`[subjects] ensure on requirement create failed: ${err.message}`);
   }
 
+  const meetingOptions = {
+    online: Boolean(body.meetingOptions?.online ?? body.mode !== 'offline'),
+    atMyPlace: Boolean(body.meetingOptions?.atMyPlace),
+    travelToTutor: Boolean(body.meetingOptions?.travelToTutor),
+  };
+  if (!meetingOptions.online && !meetingOptions.atMyPlace && !meetingOptions.travelToTutor) {
+    meetingOptions.online = true;
+  }
+
+  let mode = body.mode || 'online';
+  if (meetingOptions.online && (meetingOptions.atMyPlace || meetingOptions.travelToTutor)) {
+    mode = 'both';
+  } else if (!meetingOptions.online && (meetingOptions.atMyPlace || meetingOptions.travelToTutor)) {
+    mode = 'offline';
+  } else if (meetingOptions.online) {
+    mode = 'online';
+  }
+
+  const addressFormatted = String(body.addressFormatted || body.location || body.city || '').trim();
   const posterRole = dbUser.role === 'parent' ? 'parent' : 'student';
   const posterName = (dbUser.name || '').trim() || (posterRole === 'parent' ? 'Parent' : 'Student');
+
+  const phoneCountryCode = String(body.phoneCountryCode || dbUser.phoneCountryCode || '+91').trim();
+  const phone = String(body.phone || '').replace(/\D/g, '');
+
+  // Persist phone on user if missing (helps masked display later)
+  if (phone && (!dbUser.phone || !dbUser.phoneVerifiedAt)) {
+    dbUser.phoneCountryCode = phoneCountryCode.startsWith('+')
+      ? phoneCountryCode
+      : `+${phoneCountryCode}`;
+    dbUser.phone = phone;
+    try {
+      await dbUser.save();
+    } catch (err) {
+      logger.warn(`[requirement] could not sync user phone: ${err.message}`);
+    }
+  }
 
   const item = await Requirement.create({
     studentId: dbUser._id,
@@ -210,25 +330,42 @@ export async function createRequirement(user, body) {
     posterRole,
     title: body.title.trim(),
     subject,
+    subjectPendingApproval,
     skills,
     level: body.level || 'high',
     levelOther: body.level === 'other' ? body.levelOther?.trim() : undefined,
     jobType: body.jobType || 'tutoring',
-    mode: body.mode || 'online',
+    mode,
+    meetingOptions,
     sessionsPerWeek: body.sessionsPerWeek != null ? Number(body.sessionsPerWeek) : undefined,
-    location: body.location?.trim() || body.city?.trim() || '',
-    city: body.city?.trim() || body.location?.trim() || '',
+    location: addressFormatted,
+    addressFormatted,
+    placeId: body.placeId?.trim() || undefined,
+    locationLat: body.locationLat != null ? Number(body.locationLat) : undefined,
+    locationLng: body.locationLng != null ? Number(body.locationLng) : undefined,
+    city: body.city?.trim() || addressFormatted.split(',')[0]?.trim() || '',
     country: body.country?.trim() || '',
     budgetPerHour: Number(body.budgetPerHour ?? body.budget ?? 0),
+    budgetUnit: body.budgetUnit || 'hour',
     currency: body.currency || 'USD',
     duration: body.duration || 'ongoing',
     durationOther: body.duration === 'other' ? body.durationOther?.trim() : undefined,
+    timeCommitment: body.timeCommitment || 'part-time',
+    teacherGender: body.teacherGender || 'any',
+    languages: Array.isArray(body.languages)
+      ? body.languages.map((l) => String(l).trim()).filter(Boolean)
+      : [],
+    tutorOrigin: body.tutorOrigin?.trim() || '',
+    phoneCountryCode: phoneCountryCode.startsWith('+') ? phoneCountryCode : `+${phoneCountryCode}`,
+    phone,
+    phoneVerifiedAt: dbUser.phoneVerifiedAt || undefined,
+    attachments: Array.isArray(body.attachments) ? body.attachments : [],
     details: body.details.trim(),
+    acceptedTermsAt: new Date(),
     status: 'pending',
     approved: false,
   });
 
-  // Attach populated poster for accurate shape
   item.studentId = dbUser;
   return shapeRequirement(item, { includeEmail: true });
 }

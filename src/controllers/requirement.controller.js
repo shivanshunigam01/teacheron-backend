@@ -14,7 +14,7 @@ import {
   shapeRequirement,
   POSTER_SELECT,
 } from '../services/requirement.service.js';
-import { sendRequirementApprovedEmail } from '../services/requirementEmail.service.js';
+import { sendRequirementApprovedEmail, sendRequirementSubmittedEmail } from '../services/requirementEmail.service.js';
 
 /** GET /requirements/jobs — public approved tutor jobs */
 export const listJobs = asyncHandler(async (req, res) => {
@@ -43,16 +43,18 @@ export const listJobs = asyncHandler(async (req, res) => {
 /** GET /requirements/facets — subjects/skills/locations for filters */
 export const jobFacets = asyncHandler(async (req, res) => {
   const items = await Requirement.find({ approved: true, status: 'open' }).select(
-    'subject skills city country mode jobType',
+    'subject skills city country mode jobType level',
   );
   const subjects = new Set();
   const skills = new Set();
   const locations = new Set();
+  const levels = new Set();
   for (const r of items) {
     if (r.subject) subjects.add(r.subject);
     for (const s of r.skills || []) if (s) skills.add(s);
     if (r.city) locations.add(r.city);
     if (r.country) locations.add(r.country);
+    if (r.level) levels.add(r.level);
   }
   ApiResponse.ok(
     res,
@@ -60,6 +62,7 @@ export const jobFacets = asyncHandler(async (req, res) => {
       subjects: [...subjects].sort(),
       skills: [...skills].sort(),
       locations: [...locations].sort(),
+      levels: [...levels].sort(),
       totalJobs: items.length,
     },
     'Job facets fetched',
@@ -69,7 +72,16 @@ export const jobFacets = asyncHandler(async (req, res) => {
 /** POST /requirements — student posts requirement (pending admin review) */
 export const create = asyncHandler(async (req, res) => {
   const shaped = await createRequirement(req.user, req.body);
-  ApiResponse.created(res, shaped, 'Requirement submitted — pending admin approval');
+  const emailResult = await sendRequirementSubmittedEmail({
+    studentEmail: shaped.studentEmail || req.user.email,
+    studentName: shaped.studentName || req.user.name,
+    requirementTitle: shaped.title,
+  });
+  ApiResponse.created(
+    res,
+    { ...shaped, emailSent: emailResult.sent },
+    'Requirement submitted — pending admin approval',
+  );
 });
 
 /** GET /requirements/me — current user's requirements */

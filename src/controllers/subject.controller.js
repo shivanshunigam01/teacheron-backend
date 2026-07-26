@@ -22,6 +22,8 @@ function buildListFilter(query, { admin = false } = {}) {
   if (admin) {
     if (query.status === 'active') filter.isActive = true;
     if (query.status === 'inactive') filter.isActive = false;
+    if (query.approval === 'pending') filter.approvalStatus = 'pending';
+    if (query.approval === 'approved') filter.approvalStatus = 'approved';
   }
 
   const q = String(query.q ?? '').trim();
@@ -81,12 +83,22 @@ export const ensure = asyncHandler(async (req, res) => {
     return;
   }
 
-  const item = await ensureSubjectByName(name);
+  const pendingApproval = Boolean(req.body.pendingApproval);
+  const item = await ensureSubjectByName(name, {
+    pendingApproval,
+    proposedBy: req.user?.id,
+  });
   if (!item) {
     throw ApiError.badRequest('Please enter a valid subject or skill name');
   }
 
-  ApiResponse.created(res, toJSON(item), 'Subject added');
+  ApiResponse.created(
+    res,
+    toJSON(item),
+    pendingApproval
+      ? 'Subject submitted for admin approval'
+      : 'Subject added',
+  );
 });
 
 export const adminList = asyncHandler(async (req, res) => {
@@ -108,9 +120,13 @@ export const adminList = asyncHandler(async (req, res) => {
 });
 
 export const adminUpdateStatus = asyncHandler(async (req, res) => {
+  const isActive = Boolean(req.body.isActive);
   const item = await Subject.findByIdAndUpdate(
     req.params.id,
-    { isActive: req.body.isActive },
+    {
+      isActive,
+      approvalStatus: isActive ? 'approved' : req.body.approvalStatus || 'pending',
+    },
     { new: true, runValidators: true },
   );
   if (!item) throw ApiError.notFound();

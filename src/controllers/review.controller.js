@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import Review from '../models/Review.model.js';
+import User from '../models/User.model.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
@@ -47,9 +48,10 @@ export const summary = asyncHandler(async (req, res) => {
   } else if (req.query.tutorId) {
     filter.tutorId = req.query.tutorId;
     filter.targetType = 'tutor';
-  } else {
-    throw ApiError.badRequest('courseId or tutorId required');
+  } else if (req.query.targetType === 'platform') {
+    filter.targetType = 'platform';
   }
+  // else: all published reviews (platform-wide summary)
 
   if (filter.courseId && typeof filter.courseId === 'string') {
     filter.courseId = new mongoose.Types.ObjectId(filter.courseId);
@@ -75,7 +77,7 @@ export const create = asyncHandler(async (req, res) => {
   if (!resolvedTarget) {
     if (courseId) resolvedTarget = 'course';
     else if (tutorId) resolvedTarget = 'tutor';
-    else throw ApiError.badRequest('courseId or tutorId required');
+    else resolvedTarget = 'platform';
   }
 
   if (resolvedTarget === 'course' && !courseId) throw ApiError.badRequest('courseId required');
@@ -89,12 +91,18 @@ export const create = asyncHandler(async (req, res) => {
   });
   if (existing) throw ApiError.badRequest('You already reviewed this item');
 
+  let authorName = req.user.name || req.user.email || 'Student';
+  if (!req.user.name) {
+    const author = await User.findById(req.user.id).select('name').lean();
+    if (author?.name) authorName = author.name;
+  }
+
   const item = await Review.create({
     targetType: resolvedTarget,
     courseId: courseId || undefined,
     tutorId: tutorId || undefined,
     authorId: req.user.id,
-    authorName: req.user.name,
+    authorName,
     rating,
     text: text.trim().slice(0, 2000),
     status: 'published',

@@ -22,9 +22,10 @@ export async function findSubjectByName(name) {
  * Soft-fail: returns null for invalid names instead of throwing.
  *
  * @param {string} rawName
+ * @param {{ pendingApproval?: boolean, proposedBy?: string }} [opts]
  * @returns {Promise<import('../models/Subject.model.js').default | null>}
  */
-export async function ensureSubjectByName(rawName) {
+export async function ensureSubjectByName(rawName, opts = {}) {
   const name = normalizeSubjectName(rawName);
   if (!isValidSubjectName(name)) return null;
 
@@ -35,6 +36,8 @@ export async function ensureSubjectByName(rawName) {
   const slugTaken = await Subject.findOne({ slug });
   if (slugTaken) return slugTaken;
 
+  const pending = Boolean(opts.pendingApproval);
+
   try {
     return await Subject.create({
       name,
@@ -43,10 +46,11 @@ export async function ensureSubjectByName(rawName) {
       aliases: [],
       isPopular: false,
       sortOrder: 9000,
-      isActive: true,
+      isActive: !pending,
+      approvalStatus: pending ? 'pending' : 'approved',
+      proposedBy: opts.proposedBy || undefined,
     });
   } catch (err) {
-    // Race: another request created the same slug/name
     if (err?.code === 11000) {
       return findSubjectByName(name);
     }

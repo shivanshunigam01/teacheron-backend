@@ -6,7 +6,7 @@ const whatsAppOtpSchema = new Schema(
   {
     phone: { type: String, required: true },
     otpHash: { type: String, required: true, select: false },
-    purpose: { type: String, enum: ['login', 'signup'], required: true },
+    purpose: { type: String, enum: ['login', 'signup', 'verify'], required: true },
     attempts: { type: Number, default: 0 },
     verified: { type: Boolean, default: false },
     verifiedAt: Date,

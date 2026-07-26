@@ -19,6 +19,7 @@ const subjectGroupEnum = z.enum([
 export const ensureSubjectSchema = z.object({
   body: z.object({
     name: z.string().min(2).max(80).trim(),
+    pendingApproval: z.boolean().optional(),
   }),
 });
 
@@ -29,6 +30,7 @@ export const adminSubjectListQuerySchema = z.object({
     q: z.string().max(120).optional(),
     group: subjectGroupEnum.optional(),
     status: z.enum(['active', 'inactive', 'all']).optional(),
+    approval: z.enum(['pending', 'approved', 'all']).optional(),
     popular: z.enum(['true', 'false']).optional(),
   }),
 });

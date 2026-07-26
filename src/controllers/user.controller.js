@@ -110,4 +110,8 @@ export const requestTutorPhone = asyncHandler(async (req, res) => {
 });
 export const saveTutor=asyncHandler(async(req,res)=>{await User.findByIdAndUpdate(req.user.id,{$addToSet:{savedTutors:req.params.tutorId}});ApiResponse.ok(res,{},'Tutor saved');});
 export const unsaveTutor=asyncHandler(async(req,res)=>{await User.findByIdAndUpdate(req.user.id,{$pull:{savedTutors:req.params.tutorId}});ApiResponse.ok(res,{},'Tutor removed');});
-export const savedTutors=asyncHandler(async(req,res)=>{const u=await User.findById(req.user.id).populate('savedTutors');ApiResponse.ok(res,toJSONList(u.savedTutors||[]),'Saved tutors fetched');});
+export const savedTutors=asyncHandler(async(req,res)=>{
+  const u=await User.findById(req.user.id).populate('savedTutors');
+  const tutors=(u?.savedTutors||[]).filter(Boolean).map((t)=>mapTutorUser(t));
+  ApiResponse.ok(res,{items:tutors},'Saved tutors fetched');
+});

@@ -193,7 +193,7 @@ const internationalPhoneSchema = z
 export const whatsappSendOtpSchema = z.object({
   body: z.object({
     phone: internationalPhoneSchema,
-    purpose: z.enum(['login', 'signup']).default('login'),
+    purpose: z.enum(['login', 'signup', 'verify']).default('login'),
   }),
 });
 
@@ -201,7 +201,7 @@ export const whatsappVerifyOtpSchema = z.object({
   body: z.object({
     phone: internationalPhoneSchema,
     otp: z.string().regex(/^\d{6}$/, 'Enter the 6-digit OTP'),
-    purpose: z.enum(['login', 'signup']).default('login'),
+    purpose: z.enum(['login', 'signup', 'verify']).default('login'),
   }),
 });
 

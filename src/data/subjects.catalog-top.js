@@ -1,10 +1,11 @@
 /**
- * TeacherOn-style “Top subjects and skills” — marked popular in the master catalog.
+ * “Top subjects and skills” — marked popular in the master catalog and shown on the homepage.
  * Exact display spellings match the public listing where practical.
  */
 
 /** @type {string[]} */
 export const TOP_SUBJECTS_AND_SKILLS = [
+  // —— Original TeacherOn-style top list (keep first for familiarity) ——
   'Academic Writing',
   'Analog Electronics',
   'BioChemistry',
@@ -65,29 +66,346 @@ export const TOP_SUBJECTS_AND_SKILLS = [
   'Python',
   'Sociology',
   'Zoology',
+
+  // —— School / foundation STEM ——
+  'Mathematics',
+  'Algebra',
+  'Geometry',
+  'Trigonometry',
+  'Calculus',
+  'Linear Algebra',
+  'Differential Equations',
+  'Probability',
+  'Organic Chemistry',
+  'Inorganic Chemistry',
+  'Physical Chemistry',
+  'Botany',
+  'Genetics',
+  'Anatomy',
+  'Physiology',
+  'Astronomy',
+  'Earth Science',
+  'Geology',
+
+  // —— Exam prep (India & global) ——
+  'NEET',
+  'JEE Main',
+  'JEE Advanced',
+  'CUET',
+  'UPSC',
+  'SSC',
+  'Banking Exams',
+  'CAT',
+  'GATE',
+  'SAT',
+  'ACT',
+  'GRE',
+  'GMAT',
+  'LSAT',
+  'MCAT',
+  'TOEFL',
+  'PTE',
+  'Duolingo English Test',
+  'IB Mathematics',
+  'IB Physics',
+  'IB Chemistry',
+  'IB Biology',
+  'A-Level Maths',
+  'A-Level Physics',
+  'A-Level Chemistry',
+  'GCSE Maths',
+  'GCSE Science',
+
+  // —— Programming & IT ——
+  'JavaScript',
+  'TypeScript',
+  'SQL',
+  'CSS',
+  'React',
+  'Angular',
+  'Vue.js',
+  'Node.js',
+  'Django',
+  'Flask',
+  'Spring Boot',
+  'ASP.NET',
+  'Kotlin',
+  'Swift',
+  'Go',
+  'Rust',
+  'Ruby',
+  'MATLAB',
+  'Machine Learning',
+  'Artificial Intelligence',
+  'Deep Learning',
+  'Data Science',
+  'Big Data',
+  'Cloud Computing',
+  'AWS',
+  'Azure',
+  'Google Cloud',
+  'DevOps',
+  'Docker',
+  'Kubernetes',
+  'Cybersecurity',
+  'Ethical Hacking',
+  'Blockchain',
+  'Web Development',
+  'Full Stack Development',
+  'Mobile App Development',
+  'Android Development',
+  'iOS Development',
+  'Flutter',
+  'React Native',
+  'Software Engineering',
+  'Software Testing',
+  'MongoDB',
+  'MySQL',
+  'PostgreSQL',
+  'Linux',
+  'Operating Systems',
+  'Computer Architecture',
+  'Game Development',
+  'Unity',
+  'Excel',
+  'Power BI',
+  'Tableau',
+  'Salesforce',
+
+  // —— Engineering branches ——
+  'Mechanical Engineering',
+  'Electronics & Communication',
+  'Electronics Engineering',
+  'Computer Engineering',
+  'Chemical Engineering',
+  'Aerospace Engineering',
+  'Biomedical Engineering',
+  'Industrial Engineering',
+  'Automobile Engineering',
+  'Petroleum Engineering',
+  'Structural Engineering',
+  'Power Systems',
+  'VLSI',
+  'Embedded Systems',
+  'Mechatronics',
+  'Robotics',
+  'Signal Processing',
+  'Heat Transfer',
+  'Machine Design',
+  'Manufacturing Technology',
+  'Surveying',
+  'Building Materials',
+  'Transportation Engineering',
+  'Hydraulics',
+  'Solid Mechanics',
+  'Finite Element Analysis',
+  'SolidWorks',
+  'CATIA',
+  'ANSYS',
+  'MATLAB Simulink',
+  'PLC Programming',
+  'SCADA',
+
+  // —— Medical & health ——
+  'Medicine',
+  'Nursing',
+  'Pharmacy',
+  'Dentistry',
+  'Physiotherapy',
+  'Pathology',
+  'Pharmacology',
+  'Public Health',
+  'Nutrition & Dietetics',
+  'First Aid',
+  'Yoga',
+
+  // —— Business, finance & commerce ——
+  'Accounting',
+  'Business Studies',
+  'Marketing',
+  'Digital Marketing',
+  'SEO',
+  'Content Marketing',
+  'Human Resource Management',
+  'Operations Management',
+  'Project Management',
+  'Supply Chain Management',
+  'Entrepreneurship',
+  'Finance',
+  'Corporate Finance',
+  'Investment Banking',
+  'Stock Market',
+  'Cost Accounting',
+  'Auditing',
+  'Taxation',
+  'GST',
+  'CA Foundation',
+  'CA Intermediate',
+  'CS Executive',
+  'CFA',
+  'CPA',
+  'PMP',
+  'Six Sigma',
+  'Business Analytics',
+  'E-commerce',
+
+  // —— Law ——
+  'Corporate Law',
+  'Criminal Law',
+  'Constitutional Law',
+  'Civil Law',
+  'Contract Law',
+  'Intellectual Property Law',
+  'Labour Law',
+  'Family Law',
+  'International Law',
+  'Legal Studies',
+  'CLAT',
+
+  // —— Languages ——
+  'Spoken English',
+  'English Grammar',
+  'English Literature',
+  'Creative Writing',
+  'Public Speaking',
+  'Hindi',
+  'Sanskrit',
+  'Urdu',
+  'Bengali',
+  'Tamil',
+  'Telugu',
+  'Marathi',
+  'Gujarati',
+  'Punjabi',
+  'Kannada',
+  'Malayalam',
+  'Spanish',
+  'Italian',
+  'Portuguese',
+  'Russian',
+  'Japanese',
+  'Korean',
+  'Mandarin',
+  'Chinese',
+  'Arabic',
+  'Dutch',
+  'Turkish',
+  'Latin',
+  'Sign Language',
+
+  // —— Humanities & social sciences ——
+  'Philosophy',
+  'Anthropology',
+  'Archaeology',
+  'Civics',
+  'Social Studies',
+  'International Relations',
+  'Mass Communication',
+  'Journalism',
+  'Media Studies',
+  'Gender Studies',
+  'Religious Studies',
+  'General Knowledge',
+  'Current Affairs',
+  'Logical Reasoning',
+  'Quantitative Aptitude',
+  'Verbal Ability',
+
+  // —— Arts, design & creative ——
+  'Drawing',
+  'Painting',
+  'Sketching',
+  'Fine Arts',
+  'Graphic Design',
+  'UI/UX Design',
+  'Figma',
+  'Illustrator',
+  'InDesign',
+  'After Effects',
+  'Premiere Pro',
+  'Video Editing',
+  'Photography',
+  'Fashion Design',
+  'Interior Design',
+  'Architecture',
+  'Animation',
+  '3D Modelling',
+  'Blender',
+  'Dance',
+  'Vocal Music',
+  'Guitar',
+  'Piano',
+  'Violin',
+  'Drum',
+  'Theatre',
+  'Acting',
+
+  // —— Soft skills & career ——
+  'Personality Development',
+  'Interview Preparation',
+  'Resume Writing',
+  'Soft Skills',
+  'Leadership',
+  'Time Management',
+  'Critical Thinking',
+  'Emotional Intelligence',
+  'Career Counseling',
+  'Study Skills',
+
+  // —— Vocational & lifestyle ——
+  'Cooking',
+  'Baking',
+  'Baking & Pastry',
+  'Tailoring',
+  'Beauty & Makeup',
+  'Fitness Training',
+  'Personal Training',
+  'Swimming',
+  'Chess',
+  'Astrology',
+  'Vedic Maths',
+  'Abacus',
+  'Handwriting',
+  'Calligraphy',
 ];
 
 /** Best-effort group for top list entries when first seeded. */
 export function topSubjectGroup(name) {
   const n = name.toLowerCase();
-  if (
-    /math|physics|chemistry|biology|science|zoology|microbiology|biochem|biotech|geography|history|statistics|thermodynamics|fluid|strength of materials|engineering|electronics|mechanics|control systems|networking|dbms/.test(
-      n,
-    )
-  ) {
-    if (/law|tax|company law/.test(n)) return 'law';
-    if (/engineering|electronics|mechanics|thermodynamics|fluid|autocad|control|networking|dbms|selenium|\.net|c\+\+|c#|java|python|php|html|jquery|programming|algorithm|r$/.test(n)) {
-      return 'engineering';
-    }
-    return 'academic';
+
+  if (/neet|jee|cuet|upsc|ssc|banking|cat$|gate|sat|act|gre|gmat|lsat|mcat|toefl|pte|duolingo|ib |a-level|gcse|clat|ca foundation|ca intermediate|cs executive|cfa|cpa|pmp/.test(n)) {
+    return 'exam';
   }
-  if (/english|french|german|ielts|communication/.test(n)) return 'language';
-  if (/java|python|php|html|jquery|c\+\+|c#|\.net|programming|algorithm|selenium|dbms|r$/.test(n)) {
+  if (/java|python|php|html|css|jquery|javascript|typescript|c\+\+|c#|\.net|asp\.net|programming|algorithm|selenium|dbms|sql|react|angular|vue|node|django|flask|spring|kotlin|swift|golang|\bgo\b|rust|ruby|matlab|machine learning|artificial intelligence|deep learning|data science|big data|cloud|aws|azure|devops|docker|kubernetes|cyber|hacking|blockchain|web development|full stack|mobile app|android|ios|flutter|software|mongo|mysql|postgres|linux|operating systems|computer architecture|game development|unity|excel|power bi|tableau|salesforce|r$/.test(n)) {
     return 'programming';
   }
-  if (/account|commerce|econom|financial|business|income tax/.test(n)) return 'business';
-  if (/law/.test(n)) return 'law';
-  if (/photoshop|art and craft|music/.test(n)) return 'arts';
-  if (/psychology|sociology|political|academic writing/.test(n)) return 'humanities';
+  if (/engineering|electronics|mechanics|thermodynamics|fluid|autocad|control|networking|vlsi|embedded|mechatronics|robotics|signal|heat transfer|machine design|manufacturing|surveying|building materials|transportation|hydraulics|solid mechanics|finite element|solidworks|catia|ansys|simulink|plc|scada|strength of materials|power systems/.test(n)) {
+    return 'engineering';
+  }
+  if (/medicine|nursing|pharmacy|dentistry|physiotherapy|pathology|pharmacology|public health|nutrition|first aid|yoga|anatomy|physiology/.test(n)) {
+    return 'medical';
+  }
+  if (/account|commerce|econom|financial|business|income tax|marketing|seo|hr |human resource|operations|project management|supply chain|entrepreneur|finance|investment|stock|audit|tax|gst|six sigma|analytics|e-commerce/.test(n)) {
+    return 'business';
+  }
+  if (/law|legal|clat/.test(n)) return 'law';
+  if (/english|french|german|spanish|italian|portuguese|russian|japanese|korean|mandarin|chinese|arabic|dutch|turkish|latin|hindi|sanskrit|urdu|bengali|tamil|telugu|marathi|gujarati|punjabi|kannada|malayalam|ielts|spoken|grammar|literature|creative writing|public speaking|sign language|communication/.test(n)) {
+    return 'language';
+  }
+  if (/photoshop|illustrator|indesign|figma|after effects|premiere|art and craft|fine arts|drawing|painting|sketching|graphic|ui\/ux|video editing|photography|fashion|interior|architecture|animation|3d|blender|music|guitar|piano|violin|drum|dance|theatre|acting|vocal/.test(n)) {
+    return 'arts';
+  }
+  if (/psychology|sociology|political|philosophy|anthropology|archaeology|civics|social studies|international relations|mass communication|journalism|media|gender|religious|academic writing|general knowledge|current affairs|reasoning|aptitude|verbal ability/.test(n)) {
+    return 'humanities';
+  }
+  if (/personality|interview|resume|soft skills|leadership|time management|critical thinking|emotional intelligence|career|study skills/.test(n)) {
+    return 'softskills';
+  }
+  if (/cooking|baking|tailoring|beauty|makeup|fitness|personal training|swimming|chess|astrology|vedic|abacus|handwriting|calligraphy/.test(n)) {
+    return 'vocational';
+  }
+  if (/math|physics|chemistry|biology|science|zoology|botany|microbiology|biochem|biotech|geography|history|statistics|probability|calculus|algebra|geometry|trigonometry|genetics|astronomy|geology|earth science/.test(n)) {
+    return 'academic';
+  }
   return 'other';
 }

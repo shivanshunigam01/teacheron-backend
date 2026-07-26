@@ -77,7 +77,7 @@ export async function sendWhatsappOtp(rawPhone, purpose = 'login') {
   const otpHash = await hashOtp(otp);
   const expiresAt = new Date(Date.now() + whatsappOtp.expiryMinutes * 60_000);
 
-  await WhatsAppOtp.create({
+  const record = await WhatsAppOtp.create({
     phone,
     otpHash,
     purpose,
@@ -86,7 +86,15 @@ export async function sendWhatsappOtp(rawPhone, purpose = 'login') {
     verified: false,
   });
 
-  await sendOTP(phone, otp);
+  try {
+    await sendOTP(phone, otp);
+  } catch (err) {
+    // Failed delivery must not start the resend cooldown — remove the unused row.
+    await WhatsAppOtp.deleteOne({ _id: record._id }).catch((cleanupErr) => {
+      logger.warn(`[whatsapp-otp] cleanup after send failure: ${cleanupErr.message}`);
+    });
+    throw err;
+  }
 
   const result = { sent: true, phone, expiresInSeconds: whatsappOtp.expiryMinutes * 60 };
   if (env.NODE_ENV === 'development') {

@@ -30,6 +30,14 @@ const subjectSchema = new Schema(
     isPopular: { type: Boolean, default: false },
     sortOrder: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true, index: true },
+    /** When false/pending, subject was proposed via a requirement and needs admin activation. */
+    approvalStatus: {
+      type: String,
+      enum: ['approved', 'pending'],
+      default: 'approved',
+      index: true,
+    },
+    proposedBy: { type: Schema.Types.ObjectId, ref: 'User' },
   },
   { timestamps: true },
 );
