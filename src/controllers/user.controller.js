@@ -84,8 +84,44 @@ export const requestTutorPhone = asyncHandler(async (req, res) => {
     throw ApiError.badRequest('This tutor has not added a phone number yet');
   }
 
+  const {
+    ensureConnection,
+    isFullyConnected,
+    maskTeacherPhone,
+    formatTeacherPhone,
+    shapeConnection,
+  } = await import('../services/connection.service.js');
+
+  const { conn, created, emailSent: requestEmailSent } = await ensureConnection(req.user, tutor._id, {
+    source: 'call',
+  });
+
+  const phoneMasked = maskTeacherPhone(tutor);
+  const unlocked = isFullyConnected(conn);
+
+  if (!unlocked) {
+    ApiResponse.ok(
+      res,
+      {
+        sent: false,
+        unlocked: false,
+        phoneMasked,
+        connection: shapeConnection(conn, { viewerRole: req.user.role, teacherUser: tutor }),
+        created,
+        requestEmailSent,
+        status: conn.status,
+      },
+      conn.status === 'approved'
+        ? 'Admin approved — pay the tutor fee to unlock the full phone number'
+        : conn.status === 'rejected'
+          ? 'This connection was rejected by admin'
+          : 'Phone is masked until admin approves and you complete payment. Connection request sent.',
+    );
+    return;
+  }
+
   const { sendTutorPhoneEmail } = await import('../services/tutorPhoneEmail.service.js');
-  const phoneDisplay = [tutor.phoneCountryCode, tutor.phone].filter(Boolean).join(' ').trim();
+  const phoneDisplay = formatTeacherPhone(tutor);
 
   const mailResult = await sendTutorPhoneEmail({
     studentEmail: student.email,
@@ -100,8 +136,12 @@ export const requestTutorPhone = asyncHandler(async (req, res) => {
     res,
     {
       sent: mailResult.sent,
+      unlocked: true,
+      phone: phoneDisplay,
+      phoneMasked,
       deliveredTo: student.email,
       stub: mailResult.stub || false,
+      connection: shapeConnection(conn, { viewerRole: req.user.role, teacherUser: tutor }),
     },
     mailResult.sent
       ? 'Tutor phone number sent to your email'

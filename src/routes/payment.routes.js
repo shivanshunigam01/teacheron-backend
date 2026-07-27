@@ -10,6 +10,7 @@ r.post('/create-order', verifyJWT, requireProfileComplete, validate(createOrderS
 r.post('/verify-payment', verifyJWT, requireProfileComplete, validate(verifyPaymentSchema), c.verifyPayment);
 r.post('/', verifyJWT, requireProfileComplete, c.create);
 r.get('/me', verifyJWT, requireProfileComplete, c.mine);
+r.get('/received', verifyJWT, requireProfileComplete, c.received);
 r.get('/:id', verifyJWT, requireProfileComplete, c.getById);
 r.post('/:id/unlock-contact', verifyJWT, requireProfileComplete, c.unlock);
 

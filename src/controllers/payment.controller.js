@@ -8,9 +8,38 @@ import { createRazorpayOrder, verifyRazorpaySignature } from '../services/razorp
 
 export const create = asyncHandler(async (req, res) => {
   const p = await createPayment({ ...req.body, userId: req.user.id });
+
+  let connectionUnlocked = false;
+  try {
+    const meta = req.body.metadata || {};
+    const teacherId = meta.teacherId || meta.tutorId || req.body.referenceId;
+    const connectionId = meta.connectionId;
+    const { unlockConnectionAfterPayment } = await import('../services/connection.service.js');
+    const unlocked = await unlockConnectionAfterPayment({
+      learnerId: req.user.id,
+      teacherId: teacherId ? String(teacherId) : undefined,
+      connectionId: connectionId ? String(connectionId) : undefined,
+      paymentId: p._id,
+    });
+    if (unlocked) {
+      connectionUnlocked = true;
+      p.contactUnlocked = true;
+      await p.save();
+    }
+  } catch {
+    // non-fatal
+  }
+
   ApiResponse.created(
     res,
-    { paymentId: p.id, status: p.status, invoiceId: p.invoiceId, checkoutUrl: null },
+    {
+      paymentId: p.id,
+      status: p.status,
+      invoiceId: p.invoiceId,
+      checkoutUrl: null,
+      connectionUnlocked,
+      contactUnlocked: Boolean(p.contactUnlocked),
+    },
     'Payment created',
   );
 });
@@ -94,6 +123,34 @@ export const verifyPayment = asyncHandler(async (req, res) => {
     await payment.save();
   }
 
+  // Unlock gated tutor connection after successful payment
+  let connectionUnlocked = false;
+  if (payment.status === 'paid') {
+    const meta = payment.metadata?.toObject?.() || payment.metadata || {};
+    const teacherId =
+      meta.teacherId ||
+      meta.tutorId ||
+      (type === 'tutor_session' ? referenceId || payment.referenceId : null);
+    const connectionId = meta.connectionId;
+
+    try {
+      const { unlockConnectionAfterPayment } = await import('../services/connection.service.js');
+      const unlocked = await unlockConnectionAfterPayment({
+        learnerId: req.user.id,
+        teacherId: teacherId ? String(teacherId) : undefined,
+        connectionId: connectionId ? String(connectionId) : undefined,
+        paymentId: payment._id,
+      });
+      if (unlocked) {
+        connectionUnlocked = true;
+        payment.contactUnlocked = true;
+        await payment.save();
+      }
+    } catch {
+      // non-fatal — payment still succeeded
+    }
+  }
+
   ApiResponse.ok(
     res,
     {
@@ -103,6 +160,8 @@ export const verifyPayment = asyncHandler(async (req, res) => {
       invoiceId: payment.invoiceId,
       razorpay_order_id,
       razorpay_payment_id,
+      connectionUnlocked,
+      contactUnlocked: Boolean(payment.contactUnlocked),
     },
     'Payment verified',
   );
@@ -111,6 +170,21 @@ export const verifyPayment = asyncHandler(async (req, res) => {
 export const mine = asyncHandler(async (req, res) =>
   ApiResponse.ok(res, toJSONList(await Payment.find({ userId: req.user.id }).sort('-createdAt')), 'Payments fetched'),
 );
+
+/** Tutor earnings: paid tutor_session payments that reference this teacher. */
+export const received = asyncHandler(async (req, res) => {
+  if (req.user.role !== 'teacher') {
+    throw ApiError.forbidden('Only tutors can view received payments');
+  }
+  const tid = String(req.user.id);
+  const items = await Payment.find({
+    status: 'paid',
+    type: 'tutor_session',
+    $or: [{ referenceId: tid }, { 'metadata.teacherId': tid }, { 'metadata.tutorId': tid }],
+  }).sort('-createdAt');
+
+  ApiResponse.ok(res, toJSONList(items), 'Received payments fetched');
+});
 
 export const getById = asyncHandler(async (req, res) =>
   ApiResponse.ok(res, toJSON(await Payment.findById(req.params.id)), 'Payment fetched'),

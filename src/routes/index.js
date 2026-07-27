@@ -24,6 +24,7 @@ import tutorRoutes from './tutor.routes.js';
 import subjectRoutes from './subject.routes.js';
 import accommodationInquiryRoutes from './accommodationInquiry.routes.js';
 import conversationRoutes from './conversation.routes.js';
+import connectionRoutes from './connection.routes.js';
 import platformRoutes from './platform.routes.js';
 import { dbState } from '../config/db.js';
 
@@ -74,6 +75,7 @@ router.use('/tutors', tutorRoutes);
 router.use('/subjects', subjectRoutes);
 router.use('/accommodation-inquiries', accommodationInquiryRoutes);
 router.use('/conversations', conversationRoutes);
+router.use('/connections', connectionRoutes);
 router.use('/platform', platformRoutes);
 
 export default router;

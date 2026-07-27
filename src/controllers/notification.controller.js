@@ -43,9 +43,70 @@ export const getById = asyncHandler(async (req, res) => {
 });
 
 export const create = asyncHandler(async (req, res) => {
+  const title = String(req.body.title || req.body.subject || '').trim();
+  const body = String(req.body.body || '').trim();
+  if (!title) throw ApiError.badRequest('Title required');
+  if (!body) throw ApiError.badRequest('Body required');
+
+  const type = ['course', 'booking', 'certificate', 'system', 'promo'].includes(req.body.type)
+    ? req.body.type
+    : 'system';
+  const link = req.body.link ? String(req.body.link).slice(0, 500) : undefined;
+
+  // Admin broadcast by audience → one notification per matching user
+  const audience = String(req.body.audience || '').toLowerCase();
+  if (req.user?.role === 'admin' && audience && audience !== 'self') {
+    const User = (await import('../models/User.model.js')).default;
+    const roleFilter =
+      audience === 'all'
+        ? { role: { $in: ['student', 'teacher', 'parent', 'admin'] } }
+        : audience === 'students'
+          ? { role: 'student' }
+          : audience === 'teachers'
+            ? { role: 'teacher' }
+            : audience === 'parents'
+              ? { role: 'parent' }
+              : audience === 'admins'
+                ? { role: 'admin' }
+                : null;
+
+    if (!roleFilter) throw ApiError.badRequest('Invalid audience');
+
+    const users = await User.find({ ...roleFilter, isActive: { $ne: false } })
+      .select('_id')
+      .limit(5000)
+      .lean();
+
+    if (!users.length) {
+      ApiResponse.created(res, { created: 0, items: [] }, 'No recipients');
+      return;
+    }
+
+    const docs = users.map((u) => ({
+      userId: u._id,
+      title,
+      body,
+      type,
+      link,
+      read: false,
+      metadata: { audience, sentBy: req.user.id },
+    }));
+    const inserted = await Notification.insertMany(docs);
+    ApiResponse.created(
+      res,
+      { created: inserted.length, audience, sample: toJSON(inserted[0]) },
+      `Notification sent to ${inserted.length} users`,
+    );
+    return;
+  }
+
   const item = await Notification.create({
-    ...req.body,
+    title,
+    body,
+    type,
+    link,
     userId: req.body.userId || req.user?.id,
+    metadata: req.body.metadata,
   });
   ApiResponse.created(res, toJSON(item), 'Created successfully');
 });

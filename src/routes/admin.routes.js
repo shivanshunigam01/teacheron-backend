@@ -37,6 +37,7 @@ import {
   proposalIdParamSchema,
 } from '../validators/proposal.validator.js';
 import * as proposal from '../controllers/proposal.controller.js';
+import * as connection from '../controllers/connection.controller.js';
 import * as accommodationInquiry from '../controllers/accommodationInquiry.controller.js';
 import {
   adminAccommodationInquiryListSchema,
@@ -44,6 +45,12 @@ import {
   accommodationInquiryIdParamSchema,
   accommodationInquiryMessageSchema,
 } from '../validators/accommodationInquiry.validator.js';
+import {
+  adminConnectionListQuerySchema,
+  adminConnectionReviewSchema,
+  adminConnectionRejectSchema,
+  connectionIdParamSchema,
+} from '../validators/connection.validator.js';
 
 const r = Router();
 r.use(verifyJWT, requireRole('admin'));
@@ -113,5 +120,10 @@ r.get('/job-applications', validate(adminProposalListQuerySchema), proposal.admi
 r.get('/job-applications/:id', validate(proposalIdParamSchema), proposal.adminGetById);
 r.patch('/job-applications/:id/approve', validate(adminProposalReviewSchema), proposal.adminApprove);
 r.patch('/job-applications/:id/reject', validate(adminProposalRejectSchema), proposal.adminReject);
+
+r.get('/connections', validate(adminConnectionListQuerySchema), connection.adminList);
+r.get('/connections/:id', validate(connectionIdParamSchema), connection.adminGetById);
+r.patch('/connections/:id/approve', validate(adminConnectionReviewSchema), connection.adminApprove);
+r.patch('/connections/:id/reject', validate(adminConnectionRejectSchema), connection.adminReject);
 
 export default r;

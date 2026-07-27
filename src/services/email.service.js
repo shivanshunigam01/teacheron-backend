@@ -84,9 +84,9 @@ export async function verifySmtpConnection() {
 }
 
 /**
- * @param {{ to: string; subject: string; html: string; text?: string }} opts
+ * @param {{ to: string; subject: string; html: string; text?: string; replyTo?: string }} opts
  */
-export async function sendMail({ to, subject, html, text }) {
+export async function sendMail({ to, subject, html, text, replyTo }) {
   const { transport, settings } = await getTransport();
 
   if (!transport || !settings) {
@@ -106,6 +106,7 @@ export async function sendMail({ to, subject, html, text }) {
       subject,
       html,
       text: text || undefined,
+      replyTo: replyTo || undefined,
       attachments,
     });
     logger.info(`[MAIL SENT] to=${to} id=${info.messageId}`);

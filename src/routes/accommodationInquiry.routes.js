@@ -9,14 +9,14 @@ import {
 
 const r = Router();
 
-r.use(verifyJWT, requireRole('student', 'teacher', 'admin'), requireProfileComplete);
+r.use(verifyJWT, requireRole('student', 'parent', 'teacher', 'admin'), requireProfileComplete);
 
-r.get('/me', requireRole('student', 'teacher'), c.listMine);
+r.get('/me', requireRole('student', 'parent', 'teacher'), c.listMine);
 r.get('/by-accommodation/:accommodationId', c.getByAccommodation);
 r.post(
   '/by-accommodation/:accommodationId/messages',
   validate(accommodationInquirySendSchema),
-  requireRole('student', 'teacher'),
+  requireRole('student', 'parent', 'teacher'),
   c.sendToAccommodation,
 );
 r.get('/:id', validate(accommodationInquiryIdParamSchema), c.getById);

@@ -12,6 +12,10 @@ export const list = asyncHandler(async (req, res) => {
   for (const k of ['status', 'category', 'city', 'country', 'role', 'targetType']) {
     if (req.query[k]) filter[k] = req.query[k];
   }
+  if (req.query.sellerId) filter.sellerId = req.query.sellerId;
+  if (req.query.mine === 'true' && req.user?.id) {
+    filter.sellerId = req.user.id;
+  }
   const [items, total] = await Promise.all([
     Listing.find(filter).sort(sort).skip(skip).limit(limit),
     Listing.countDocuments(filter),

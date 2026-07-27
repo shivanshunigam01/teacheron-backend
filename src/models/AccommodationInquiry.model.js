@@ -5,7 +5,7 @@ const { Schema } = mongoose;
 const inquiryMessageSchema = new Schema(
   {
     authorId: { type: Schema.Types.ObjectId, ref: 'User' },
-    authorRole: { type: String, enum: ['student', 'teacher', 'admin'], required: true },
+    authorRole: { type: String, enum: ['student', 'parent', 'teacher', 'admin'], required: true },
     body: { type: String, required: true, trim: true, maxlength: 2000 },
     createdAt: { type: Date, default: Date.now },
   },
