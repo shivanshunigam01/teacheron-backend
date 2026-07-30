@@ -1,7 +1,7 @@
 import logger from '../config/logger.js';
 import { sendMail } from './email.service.js';
 import { buildTutorPhoneEmail } from '../templates/email/tutorPhoneEmail.js';
-import env from '../config/env.js';
+import { getEmailClientUrl } from '../templates/email/brand.js';
 
 export async function sendTutorPhoneEmail({
   studentEmail,
@@ -18,7 +18,7 @@ export async function sendTutorPhoneEmail({
     throw new Error('Tutor has no phone number on file');
   }
 
-  const clientUrl = env.CLIENT_URL || 'http://localhost:5173';
+  const clientUrl = getEmailClientUrl();
   const { subject, html, text } = buildTutorPhoneEmail({
     studentName,
     tutorName,

@@ -4,8 +4,11 @@ import {
   buildAccommodationEnquiryOpenedEmail,
   buildAccommodationEnquiryReplyEmail,
 } from '../templates/email/accommodationEnquiryEmail.js';
+import { getEmailClientUrl } from '../templates/email/brand.js';
 
-const CLIENT = process.env.CLIENT_URL || 'https://www.teacherpoint.org';
+function clientBase() {
+  return getEmailClientUrl();
+}
 
 function adminInboxEmail() {
   return (
@@ -39,7 +42,7 @@ export async function sendAccommodationEnquiryOpenedEmail({
     city,
     country,
     message,
-    adminUrl: `${CLIENT}/admin#inquiries`,
+    adminUrl: `${clientBase()}/admin#inquiries`,
   });
 
   try {
@@ -78,7 +81,7 @@ export async function sendAccommodationEnquiryReplyEmail({
     learnerName,
     accommodationName,
     replyBody,
-    dashboardUrl: `${CLIENT}${dashboardPath}`,
+    dashboardUrl: `${clientBase()}${dashboardPath}`,
   });
 
   try {

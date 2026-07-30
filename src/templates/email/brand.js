@@ -32,24 +32,32 @@ function isProductionDeployment() {
 
 /**
  * Public site URL for links inside transactional emails.
- * Never uses localhost when deployed or when real SMTP sends mail (unless MAIL_ALLOW_LOCAL_URLS=true).
+ * Never ships localhost in real emails unless MAIL_ALLOW_LOCAL_URLS=true.
  */
 export function getEmailClientUrl() {
-  const mailOverride = process.env.MAIL_CLIENT_URL?.trim();
-  if (mailOverride) return stripTrailingSlash(mailOverride);
+  const allowLocal = process.env.MAIL_ALLOW_LOCAL_URLS === 'true';
 
-  const client = env.clientUrl ? stripTrailingSlash(env.clientUrl) : '';
+  const candidates = [
+    process.env.MAIL_CLIENT_URL?.trim(),
+    env.clientUrl,
+    process.env.CLIENT_URL?.trim(),
+  ].filter(Boolean);
+
+  for (const raw of candidates) {
+    const url = stripTrailingSlash(raw);
+    if (!isLocalhostUrl(url)) return url;
+    if (allowLocal) return url;
+  }
 
   if (isProductionDeployment()) return PRODUCTION_CLIENT;
 
-  if (client && !isLocalhostUrl(client)) return client;
-
+  // Real SMTP outbound (Gmail etc.) — always use production domain for CTA buttons
   const smtpConfigured = Boolean(process.env.SMTP_USER?.trim() || env.smtp?.user?.trim());
-  if (smtpConfigured && process.env.MAIL_ALLOW_LOCAL_URLS !== 'true') {
+  if (smtpConfigured && !allowLocal) {
     return PRODUCTION_CLIENT;
   }
 
-  return client || PRODUCTION_CLIENT;
+  return PRODUCTION_CLIENT;
 }
 
 /** API origin for uploaded assets in emails (course images, etc.). */

@@ -5,8 +5,11 @@ import {
   buildConnectionApprovedTeacherEmail,
   buildConnectionApprovedLearnerEmail,
 } from '../templates/email/connectionApprovedEmail.js';
+import { getEmailClientUrl } from '../templates/email/brand.js';
 
-const CLIENT = process.env.CLIENT_URL || 'https://www.teacherpoint.org';
+function clientBase() {
+  return getEmailClientUrl();
+}
 
 export async function sendConnectionRequestEmail({
   teacherEmail,
@@ -22,7 +25,7 @@ export async function sendConnectionRequestEmail({
     learnerName,
     learnerRole,
     source,
-    dashboardUrl: `${CLIENT}/teacher#connections`,
+    dashboardUrl: `${clientBase()}/teacher#connections`,
   });
 
   try {
@@ -61,7 +64,7 @@ export async function sendConnectionApprovedEmails({
       learnerName,
       amount,
       currency,
-      dashboardUrl: `${CLIENT}/teacher#connections`,
+      dashboardUrl: `${clientBase()}/teacher#connections`,
     });
     try {
       const result = await sendMail({
@@ -84,7 +87,7 @@ export async function sendConnectionApprovedEmails({
       teacherName,
       amount,
       currency,
-      payUrl: teacherId ? `${CLIENT}/tutors/${teacherId}` : `${CLIENT}/tutors`,
+      payUrl: teacherId ? `${clientBase()}/tutors/${teacherId}` : `${clientBase()}/tutors`,
     });
     try {
       const result = await sendMail({

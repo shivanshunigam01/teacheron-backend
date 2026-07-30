@@ -1,15 +1,15 @@
 import logger from '../config/logger.js';
-import env from '../config/env.js';
 import { sendMail } from './email.service.js';
 import { buildRequirementApprovedEmail } from '../templates/email/requirementApprovedEmail.js';
 import { buildRequirementSubmittedEmail } from '../templates/email/requirementSubmittedEmail.js';
+import { getEmailClientUrl } from '../templates/email/brand.js';
 
 export async function sendRequirementSubmittedEmail({ studentEmail, studentName, requirementTitle }) {
   if (!studentEmail) {
     return { sent: false, stub: true, reason: 'no_email' };
   }
 
-  const clientUrl = env.CLIENT_URL || 'http://localhost:5173';
+  const clientUrl = getEmailClientUrl();
   const { subject, html, text } = buildRequirementSubmittedEmail({
     studentName,
     requirementTitle,
@@ -35,7 +35,7 @@ export async function sendRequirementApprovedEmail({ studentEmail, studentName, 
     return { sent: false, stub: true, reason: 'no_email' };
   }
 
-  const clientUrl = env.CLIENT_URL || 'http://localhost:5173';
+  const clientUrl = getEmailClientUrl();
   const { subject, html, text } = buildRequirementApprovedEmail({
     studentName,
     requirementTitle,

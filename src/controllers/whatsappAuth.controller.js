@@ -6,6 +6,7 @@ import {
   signupWithVerifiedPhone,
 } from '../services/whatsappAuth.service.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
+import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { withStaffRole } from '../utils/adminStaff.js';
 import { recordUserIpActivity } from '../services/ipMonitor.service.js';
@@ -56,7 +57,7 @@ export const verifyOtp = asyncHandler(async (req, res) => {
 });
 
 export const login = asyncHandler(async (req, res) => {
-  const { phone } = req.body;
+  const { phone, expectedRole } = req.body;
   const result = await loginWithVerifiedPhone(phone);
 
   if (result.newUser) {
@@ -64,6 +65,12 @@ export const login = asyncHandler(async (req, res) => {
   }
 
   const { user } = result;
+
+  if (expectedRole && user.role !== expectedRole) {
+    throw ApiError.forbidden(
+      `This WhatsApp account is registered as a ${user.role}. Please use the ${user.role} login page.`,
+    );
+  }
 
   try {
     await recordUserIpActivity({ user, req, action: 'login' });

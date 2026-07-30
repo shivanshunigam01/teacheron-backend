@@ -57,7 +57,7 @@ const env = {
     process.env.BASE_URL ||
     (process.env.API_BASE_URL || '').replace(/\/api\/v1\/?$/i, '').replace(/\/$/, '') ||
     `http://localhost:${process.env.PORT || 5000}`,
-  CLIENT_URL: process.env.CLIENT_URL || 'http://localhost:5173',
+  CLIENT_URL: process.env.CLIENT_URL || 'https://www.teacherpoint.org',
   API_PREFIX: process.env.API_PREFIX || '/api/v1',
   MONGO_URI: resolveMongoUri(),
   JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET || 'dev_access_secret_change_me_32_chars',
@@ -65,7 +65,10 @@ const env = {
   JWT_ACCESS_EXPIRES: process.env.JWT_ACCESS_EXPIRES || '15m',
   JWT_REFRESH_EXPIRES: process.env.JWT_REFRESH_EXPIRES || '7d',
   BCRYPT_ROUNDS: Number(process.env.BCRYPT_ROUNDS || 10),
-  corsOrigins: (process.env.CORS_ORIGINS || process.env.CLIENT_URL || 'http://localhost:5173')
+  corsOrigins: (
+    process.env.CORS_ORIGINS ||
+    'http://localhost:5173,http://localhost:3000,http://localhost:3001,https://www.teacherpoint.org,https://teacherpoint.org'
+  )
     .split(',')
     .map((s) => s.trim()),
   uploadDir: process.env.UPLOAD_DIR || 'uploads',
@@ -85,9 +88,7 @@ const env = {
   googleClientId: process.env.GOOGLE_CLIENT_ID?.trim() || '',
   cloudinaryUrl: process.env.CLOUDINARY_URL?.trim() || '',
   cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME?.trim() || '',
-  clientUrl:
-    process.env.CLIENT_URL ||
-    (process.env.NODE_ENV === 'production' ? 'https://www.teacherpoint.org' : 'http://localhost:5173'),
+  clientUrl: process.env.CLIENT_URL || 'https://www.teacherpoint.org',
   aisensy: {
     apiEndpoint: process.env.AISENSY_API_ENDPOINT?.trim() || 'https://backend.aisensy.com/campaign/t1/api/v2',
     apiKey: process.env.AISENSY_API_KEY?.trim() || '',

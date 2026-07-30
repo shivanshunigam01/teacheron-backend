@@ -66,7 +66,7 @@ export const adminApprove = asyncHandler(async (req, res) => {
       teacherEmail: teacher.email,
       teacherName: teacher.name,
       requirementTitle: requirement.title,
-      jobUrl: `${process.env.CLIENT_URL || 'https://www.teacherpoint.org'}/teacher`,
+      jobUrl: `${process.env.MAIL_CLIENT_URL || process.env.CLIENT_URL || 'https://www.teacherpoint.org'}/teacher`,
     });
     emailSent = result.sent;
   }

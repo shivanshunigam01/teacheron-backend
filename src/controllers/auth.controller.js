@@ -181,7 +181,7 @@ export const resendVerification = asyncHandler(async (req, res) => {
 });
 
 export const login = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, expectedRole } = req.body;
   const user = await User.findOne({ email: email.toLowerCase().trim() }).select('+passwordHash');
 
   if (!user) {
@@ -207,6 +207,15 @@ export const login = asyncHandler(async (req, res) => {
   }
   if (!user.isActive) throw ApiError.forbidden('Account is disabled');
 
+  if (expectedRole && user.role !== expectedRole) {
+    if (expectedRole === 'admin') {
+      throw ApiError.forbidden('This login is for staff accounts only. Use the Student, Tutor, or Parent login on the public site.');
+    }
+    throw ApiError.forbidden(
+      `This account is registered as a ${user.role}. Please use the ${user.role} login page.`,
+    );
+  }
+
   user.profileComplete = computeProfileComplete(user);
   await user.save();
 
@@ -221,7 +230,7 @@ export const login = asyncHandler(async (req, res) => {
 
 export const googleLogin = async (req, res) => {
   try {
-    const { credential, role } = req.body;
+    const { credential, role, expectedRole } = req.body;
 
     console.log('GOOGLE_CLIENT_ID:', env.googleClientId || '(not set)');
     console.log('Credential Exists:', !!credential);
@@ -281,7 +290,20 @@ export const googleLogin = async (req, res) => {
       });
     }
 
-    const { user, isNewUser, welcomeEmailSent } = await findOrCreateGoogleUser(googleUser, { role });
+    const signupRole = expectedRole && ['student', 'teacher', 'parent'].includes(expectedRole)
+      ? expectedRole
+      : role;
+    const { user, isNewUser, welcomeEmailSent } = await findOrCreateGoogleUser(googleUser, {
+      role: signupRole,
+    });
+
+    if (expectedRole && user.role !== expectedRole) {
+      return res.status(403).json({
+        success: false,
+        message: `This Google account is registered as a ${user.role}. Please use the ${user.role} login page.`,
+        errors: [],
+      });
+    }
 
     try {
       await recordUserIpActivity({ user, req, action: isNewUser ? 'register' : 'login' });

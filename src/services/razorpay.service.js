@@ -14,9 +14,13 @@ function getClient() {
       'Razorpay is not configured. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in backend .env',
     );
   }
+  // Razorpay Node SDK requires exactly key_id + key_secret (not keyId / api_key / secret).
   const credentialKey = `${keyId}:${keySecret}`;
   if (!client || cachedCredentialKey !== credentialKey) {
-    client = new Razorpay({ key_id: keyId, key_secret: keySecret });
+    client = new Razorpay({
+      key_id: keyId,
+      key_secret: keySecret,
+    });
     cachedCredentialKey = credentialKey;
   }
   return client;
@@ -28,6 +32,9 @@ export async function verifyRazorpayConnection() {
     logger.warn('Razorpay not configured — set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in backend .env');
     return false;
   }
+  logger.info(
+    `Razorpay keys loaded (KEY_ID=${env.razorpay.keyId}, SECRET=${Boolean(env.razorpay.keySecret)})`,
+  );
   try {
     await getClient().orders.create({
       amount: 100,
@@ -42,10 +49,11 @@ export async function verifyRazorpayConnection() {
       status,
       keyId: env.razorpay.keyId,
       message: err?.error?.description || err?.message,
+      code: err?.error?.code,
     });
     if (status === 401) {
       logger.error(
-        'Razorpay authentication failed — regenerate Test/Live API keys in Razorpay Dashboard and update backend .env (and production server .env)',
+        'Razorpay authentication failed — KEY_ID/KEY_SECRET are loaded but Razorpay rejected them. Regenerate a matching Test Mode pair in Razorpay Dashboard → Settings → API Keys, update backend .env + production .env, then restart PM2.',
       );
     }
     return false;
@@ -82,14 +90,21 @@ export async function createRazorpayOrder(input) {
     };
   } catch (err) {
     const status = err?.statusCode || err?.error?.statusCode;
+    const description = err?.error?.description || err?.message || 'Unknown Razorpay error';
     logger.error('[razorpay] create order failed', {
       status,
-      message: err?.error?.description || err?.message,
+      message: description,
+      code: err?.error?.code,
+      keyIdPresent: Boolean(env.razorpay.keyId),
+      secretPresent: Boolean(env.razorpay.keySecret),
+      razorpay: err?.error || null,
     });
     if (status === 401) {
-      throw ApiError.unauthorized('Razorpay authentication failed — check API keys');
+      throw ApiError.unauthorized(
+        'Razorpay authentication failed — API keys are loaded but rejected by Razorpay. Regenerate Test Mode Key ID + Key Secret (same pair), update RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET, and restart the API.',
+      );
     }
-    throw ApiError.internal('Could not create Razorpay order');
+    throw ApiError.internal(`Could not create Razorpay order: ${description}`);
   }
 }
 

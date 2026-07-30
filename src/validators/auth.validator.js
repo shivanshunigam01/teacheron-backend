@@ -13,6 +13,8 @@ export const loginSchema = z.object({
   body: z.object({
     email: z.string().email(),
     password: z.string().min(1),
+    /** Portal gate — reject if account role does not match. */
+    expectedRole: z.enum(['student', 'teacher', 'parent', 'admin']).optional(),
   }),
 });
 
@@ -46,6 +48,7 @@ export const googleLoginSchema = z.object({
   body: z.object({
     credential: z.string().min(10),
     role: z.enum(['student', 'teacher', 'parent']).optional(),
+    expectedRole: z.enum(['student', 'teacher', 'parent']).optional(),
   }),
 });
 
@@ -208,6 +211,7 @@ export const whatsappVerifyOtpSchema = z.object({
 export const whatsappLoginSchema = z.object({
   body: z.object({
     phone: internationalPhoneSchema,
+    expectedRole: z.enum(['student', 'teacher', 'parent']).optional(),
   }),
 });
 
