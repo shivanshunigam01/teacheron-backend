@@ -36,7 +36,7 @@ export const list = asyncHandler(async (req, res) => {
 export const getById = asyncHandler(async (req, res) => {
   const item = await Notification.findById(req.params.id);
   if (!item) throw ApiError.notFound();
-  if (req.user && String(item.userId) !== req.user.id && req.user.role !== 'admin') {
+  if (String(item.userId) !== req.user.id && req.user.role !== 'admin') {
     throw ApiError.forbidden();
   }
   ApiResponse.ok(res, toJSON(item), 'Fetched successfully');
@@ -100,12 +100,19 @@ export const create = asyncHandler(async (req, res) => {
     return;
   }
 
+  if (req.user?.role !== 'admin' && audience && audience !== 'self') {
+    throw ApiError.forbidden('Only admins can broadcast notifications');
+  }
+
+  const targetUserId = req.user?.id;
+  if (!targetUserId) throw ApiError.unauthorized();
+
   const item = await Notification.create({
     title,
     body,
     type,
     link,
-    userId: req.body.userId || req.user?.id,
+    userId: targetUserId,
     metadata: req.body.metadata,
   });
   ApiResponse.created(res, toJSON(item), 'Created successfully');

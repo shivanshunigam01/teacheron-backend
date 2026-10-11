@@ -6,41 +6,9 @@ import { toJSON, toJSONList } from '../utils/serialize.js';
 import { createPayment } from '../services/payment.service.js';
 import { createRazorpayOrder, verifyRazorpaySignature } from '../services/razorpay.service.js';
 
-export const create = asyncHandler(async (req, res) => {
-  const p = await createPayment({ ...req.body, userId: req.user.id });
-
-  let connectionUnlocked = false;
-  try {
-    const meta = req.body.metadata || {};
-    const teacherId = meta.teacherId || meta.tutorId || req.body.referenceId;
-    const connectionId = meta.connectionId;
-    const { unlockConnectionAfterPayment } = await import('../services/connection.service.js');
-    const unlocked = await unlockConnectionAfterPayment({
-      learnerId: req.user.id,
-      teacherId: teacherId ? String(teacherId) : undefined,
-      connectionId: connectionId ? String(connectionId) : undefined,
-      paymentId: p._id,
-    });
-    if (unlocked) {
-      connectionUnlocked = true;
-      p.contactUnlocked = true;
-      await p.save();
-    }
-  } catch {
-    // non-fatal
-  }
-
-  ApiResponse.created(
-    res,
-    {
-      paymentId: p.id,
-      status: p.status,
-      invoiceId: p.invoiceId,
-      checkoutUrl: null,
-      connectionUnlocked,
-      contactUnlocked: Boolean(p.contactUnlocked),
-    },
-    'Payment created',
+export const create = asyncHandler(async () => {
+  throw ApiError.badRequest(
+    'Direct payment creation is disabled. Use POST /payments/create-order, complete Razorpay checkout, then POST /payments/verify-payment.',
   );
 });
 
@@ -186,11 +154,32 @@ export const received = asyncHandler(async (req, res) => {
   ApiResponse.ok(res, toJSONList(items), 'Received payments fetched');
 });
 
-export const getById = asyncHandler(async (req, res) =>
-  ApiResponse.ok(res, toJSON(await Payment.findById(req.params.id)), 'Payment fetched'),
-);
+function canAccessPayment(payment, user) {
+  const uid = String(user.id);
+  if (user.role === 'admin') return true;
+  if (String(payment.userId) === uid) return true;
+  if (user.role !== 'teacher' || payment.type !== 'tutor_session') return false;
+  const meta = payment.metadata?.toObject?.() || payment.metadata || {};
+  const ref = payment.referenceId?.toString?.() || String(payment.referenceId || '');
+  return ref === uid || String(meta.teacherId || '') === uid || String(meta.tutorId || '') === uid;
+}
+
+export const getById = asyncHandler(async (req, res) => {
+  const payment = await Payment.findById(req.params.id);
+  if (!payment) throw ApiError.notFound('Payment not found');
+  if (!canAccessPayment(payment, req.user)) throw ApiError.forbidden();
+  ApiResponse.ok(res, toJSON(payment), 'Payment fetched');
+});
 
 export const unlock = asyncHandler(async (req, res) => {
-  const p = await Payment.findByIdAndUpdate(req.params.id, { contactUnlocked: true }, { new: true });
+  if (req.user.role !== 'admin') {
+    throw ApiError.forbidden('Only admins can manually unlock contact on a payment');
+  }
+  const p = await Payment.findByIdAndUpdate(
+    req.params.id,
+    { contactUnlocked: true },
+    { new: true },
+  );
+  if (!p) throw ApiError.notFound('Payment not found');
   ApiResponse.ok(res, toJSON(p), 'Contact unlocked');
 });

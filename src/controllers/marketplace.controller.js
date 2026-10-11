@@ -44,16 +44,24 @@ export const create = asyncHandler(async (req, res) => {
 });
 
 export const update = asyncHandler(async (req, res) => {
+  const existing = await Listing.findById(req.params.id);
+  if (!existing) throw ApiError.notFound();
+  if (req.user.role !== 'admin' && String(existing.sellerId) !== String(req.user.id)) {
+    throw ApiError.forbidden('You can only update your own listings');
+  }
   const item = await Listing.findByIdAndUpdate(req.params.id, req.body, {
     new: true,
     runValidators: true,
   });
-  if (!item) throw ApiError.notFound();
   ApiResponse.ok(res, shapeListing(item, req), 'Updated successfully');
 });
 
 export const remove = asyncHandler(async (req, res) => {
-  const item = await Listing.findByIdAndDelete(req.params.id);
-  if (!item) throw ApiError.notFound();
+  const existing = await Listing.findById(req.params.id);
+  if (!existing) throw ApiError.notFound();
+  if (req.user.role !== 'admin' && String(existing.sellerId) !== String(req.user.id)) {
+    throw ApiError.forbidden('You can only delete your own listings');
+  }
+  await Listing.findByIdAndDelete(req.params.id);
   ApiResponse.ok(res, {}, 'Deleted successfully');
 });
