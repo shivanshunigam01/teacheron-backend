@@ -12,7 +12,29 @@ import {
   collectCountriesWithTutors,
 } from '../utils/tutorSearch.js';
 export const list=asyncHandler(async(req,res)=>{const {page,limit,skip,sort}=getPagination(req.query);const filter={};if(req.query.role)filter.role=req.query.role;if(req.query.q)filter.$text={$search:req.query.q};const [items,total]=await Promise.all([User.find(filter).sort(sort).skip(skip).limit(limit),User.countDocuments(filter)]);ApiResponse.ok(res,{items:toJSONList(items),pagination:paginationMeta(total,page,limit)},'Users fetched');});
-export const getById=asyncHandler(async(req,res)=>{const user=await User.findById(req.params.id);if(!user)throw ApiError.notFound('User not found');ApiResponse.ok(res,toJSON(user),'User fetched');});
+export const getById = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
+  if (!user) throw ApiError.notFound('User not found');
+
+  const isSelf = String(req.user.id) === String(req.params.id);
+  const isAdmin = req.user.role === 'admin';
+
+  if (isSelf || isAdmin) {
+    ApiResponse.ok(res, toJSON(user), 'User fetched');
+    return;
+  }
+
+  if (user.role === 'teacher' && user.isActive !== false) {
+    const profileComplete =
+      Boolean(user.teacherProfile?.profileCompleted) || Boolean(user.profileComplete);
+    if (profileComplete) {
+      ApiResponse.ok(res, mapTutorUser(user, { detailed: true }), 'Tutor fetched');
+      return;
+    }
+  }
+
+  throw ApiError.forbidden('You cannot view this user profile');
+});
 export const update=asyncHandler(async(req,res)=>{if(req.user.role!=='admin'&&req.user.id!==req.params.id)throw ApiError.forbidden();const {role,email,passwordHash,googleId,...safe}=req.body;const user=await User.findByIdAndUpdate(req.params.id,safe,{new:true,runValidators:true});ApiResponse.ok(res,toJSON(user),'User updated');});
 export const tutorsFacets = asyncHandler(async (req, res) => {
   const teachers = await User.find({

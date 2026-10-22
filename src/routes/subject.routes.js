@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import * as c from '../controllers/subject.controller.js';
-import { verifyJWT, requireRole } from '../middleware/auth.middleware.js';
+import { verifyJWT, requireRole, requireProfileComplete } from '../middleware/auth.middleware.js';
 import { validate } from '../middleware/validate.middleware.js';
 import {
   createSubjectSchema,
@@ -12,7 +12,7 @@ const r = Router();
 
 r.get('/popular', c.popular);
 r.get('/', c.list);
-r.post('/ensure', validate(ensureSubjectSchema), c.ensure);
+r.post('/ensure', verifyJWT, requireProfileComplete, validate(ensureSubjectSchema), c.ensure);
 r.get('/:slug', c.getBySlug);
 r.post('/', verifyJWT, requireRole('admin'), validate(createSubjectSchema), c.create);
 r.patch('/:id', verifyJWT, requireRole('admin'), validate(updateSubjectSchema), c.update);

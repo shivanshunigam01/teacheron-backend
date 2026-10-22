@@ -12,7 +12,7 @@ r.get('/me/saved-tutors', verifyJWT, requireProfileComplete, c.savedTutors);
 r.post('/me/saved-tutors/:tutorId', verifyJWT, requireProfileComplete, c.saveTutor);
 r.delete('/me/saved-tutors/:tutorId', verifyJWT, requireProfileComplete, c.unsaveTutor);
 r.get('/', verifyJWT, requireRole('admin'), c.list);
-r.get('/:id', c.getById);
+r.get('/:id', verifyJWT, c.getById);
 r.patch('/:id', verifyJWT, c.update);
 
 export default r;

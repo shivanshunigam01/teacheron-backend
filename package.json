@@ -9,6 +9,7 @@
     "seed:subjects": "node src/utils/seedSubjects.js",
     "test:smtp": "node scripts/test-smtp.js",
     "test:razorpay": "node scripts/test-razorpay.js",
+    "test:security": "node scripts/test-security-fixes.js",
     "lint": "eslint src/",
     "format": "prettier --write src/"
   },
