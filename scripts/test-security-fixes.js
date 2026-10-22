@@ -14,8 +14,13 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const API_PREFIX = '/api/v1';
 
+function apiUrl(base, urlPath) {
+  const path = urlPath.startsWith('/') ? urlPath : `/${urlPath}`;
+  return `${base.replace(/\/$/, '')}${path}`;
+}
+
 async function request(base, method, urlPath, body, headers = {}) {
-  const url = new URL(urlPath, base);
+  const url = apiUrl(base, urlPath);
   const payload = body ? JSON.stringify(body) : undefined;
   const res = await fetch(url, {
     method,
@@ -57,6 +62,7 @@ const db = mongoose.connection.db;
 const teacher = await db.collection('users').findOne({
   role: 'teacher',
   isActive: { $ne: false },
+  $or: [{ profileComplete: true }, { 'teacherProfile.profileCompleted': true }],
 });
 if (!teacher) {
   console.error('No teacher in DB — seed data required for security tests');
