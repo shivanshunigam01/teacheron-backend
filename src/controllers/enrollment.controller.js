@@ -2,6 +2,7 @@ import Enrollment from '../models/Enrollment.model.js';
 import Progress from '../models/Progress.model.js';
 import Certificate from '../models/Certificate.model.js';
 import Course from '../models/Course.model.js';
+import Payment from '../models/Payment.model.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
@@ -31,6 +32,19 @@ export const enroll = asyncHandler(async (req, res) => {
 
   const course = await Course.findById(courseId);
   if (!course || course.status !== 'published') throw ApiError.notFound('Course not found');
+
+  const coursePrice = Number(course.price) || 0;
+  if (coursePrice > 0) {
+    const paid = await Payment.findOne({
+      userId: req.user.id,
+      status: 'paid',
+      type: 'course',
+      referenceId: course._id,
+    });
+    if (!paid) {
+      throw ApiError.forbidden('Complete course payment before enrolling');
+    }
+  }
 
   let item = await Enrollment.findOne({ userId: req.user.id, courseId });
   if (item) {

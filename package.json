@@ -10,6 +10,9 @@
     "test:smtp": "node scripts/test-smtp.js",
     "test:razorpay": "node scripts/test-razorpay.js",
     "test:security": "node scripts/test-security-fixes.js",
+    "test:admin-permissions": "node scripts/test-admin-permissions.js",
+    "test:auth-flow": "node scripts/test-auth-flow.js",
+    "test:enrollment-payment": "node scripts/test-enrollment-payment.js",
     "lint": "eslint src/",
     "format": "prettier --write src/"
   },

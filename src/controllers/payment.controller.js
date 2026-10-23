@@ -65,6 +65,24 @@ export const verifyPayment = asyncHandler(async (req, res) => {
     'metadata.razorpayOrderId': razorpay_order_id,
   });
 
+  if (payment?.status === 'paid') {
+    return ApiResponse.ok(
+      res,
+      {
+        verified: true,
+        paymentId: payment.id,
+        status: payment.status,
+        invoiceId: payment.invoiceId,
+        razorpay_order_id,
+        razorpay_payment_id: payment.metadata?.razorpayPaymentId || razorpay_payment_id,
+        connectionUnlocked: Boolean(payment.contactUnlocked),
+        contactUnlocked: Boolean(payment.contactUnlocked),
+        idempotent: true,
+      },
+      'Payment already verified',
+    );
+  }
+
   if (!payment) {
     payment = await createPayment({
       userId: req.user.id,
