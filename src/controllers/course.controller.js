@@ -27,6 +27,9 @@ export const list = asyncHandler(async (req, res) => {
 export const getById = asyncHandler(async (req, res) => {
   const item = await Course.findById(req.params.id);
   if (!item) throw ApiError.notFound();
+  if (!req.headers.authorization) {
+    res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+  }
   ApiResponse.ok(res, toJSON(item), 'Fetched successfully');
 });
 
